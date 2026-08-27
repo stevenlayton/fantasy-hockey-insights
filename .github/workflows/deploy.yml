@@ -47,5 +47,9 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
-      - name: Deploy to Firebase (hosting + functions + firestore rules/indexes)
-        run: npx firebase-tools@13 deploy --project "${{ secrets.FIREBASE_PROJECT_ID }}" --non-interactive
+      - name: Deploy Hosting + Firestore (always must succeed)
+        run: npx firebase-tools@13 deploy --only hosting,firestore --project "${{ secrets.FIREBASE_PROJECT_ID }}" --non-interactive
+
+      - name: Deploy Functions (best-effort - won't fail the build)
+        continue-on-error: true
+        run: npx firebase-tools@13 deploy --only functions --project "${{ secrets.FIREBASE_PROJECT_ID }}" --non-interactive
