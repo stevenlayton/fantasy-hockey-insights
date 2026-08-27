@@ -85,8 +85,7 @@ export default function DraftGuide() {
             {!loading && rankings.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
-                  No draft rankings yet for this position - run{' '}
-                  <code>runIngestionNow?job=draftGuide</code>.
+                  No draft rankings yet for this position - check back soon.
                 </td>
               </tr>
             )}
