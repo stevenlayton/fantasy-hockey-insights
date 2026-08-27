@@ -14,17 +14,22 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-40 border-b border-rink-border bg-rink-950/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-        <NavLink to="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-ice-500/10 text-ice-500 ring-1 ring-ice-500/30">
-            <Radar size={20} strokeWidth={2.25} />
+        <div className="flex items-center gap-3">
+          <NavLink to="/" className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-md bg-ice-500/10 text-ice-500 ring-1 ring-ice-500/30">
+              <Radar size={20} strokeWidth={2.25} />
+            </span>
+            <span className="font-display text-xl font-semibold tracking-wide text-white">
+              DRAFT<span className="text-ice-500">CREASE</span>
+            </span>
+            <span className="hidden rounded bg-rink-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400 sm:inline">
+              NHL
+            </span>
+          </NavLink>
+          <span className="hidden border-l border-rink-border pl-3 text-xs font-medium uppercase tracking-wide text-slate-500 lg:inline">
+            Fantasy Insights &amp; Analytics
           </span>
-          <span className="font-display text-xl font-semibold tracking-wide text-white">
-            DRAFT<span className="text-ice-500">CREASE</span>
-          </span>
-          <span className="hidden rounded bg-rink-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400 sm:inline">
-            NHL
-          </span>
-        </NavLink>
+        </div>
 
         <nav className="hidden items-center gap-1 md:flex">
           {LINKS.map(({ to, label, icon: Icon, end }) => (
