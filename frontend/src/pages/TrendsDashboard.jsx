@@ -96,8 +96,7 @@ export default function TrendsDashboard() {
 function EmptyState() {
   return (
     <div className="rounded-lg border border-dashed border-rink-border p-6 text-center text-sm text-slate-500">
-      No scored players yet. Trigger <code>runIngestionNow?job=stats</code> once, or wait for the
-      scheduled pipeline to run.
+      No trending players yet - check back soon.
     </div>
   );
 }
