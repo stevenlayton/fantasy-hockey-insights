@@ -15,14 +15,6 @@
         { "fieldPath": "rosteredEstimate", "order": "ASCENDING" },
         { "fieldPath": "score", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "news",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publishedAt", "order": "DESCENDING" }
-      ]
-    }
-  ],
+      ],
   "fieldOverrides": []
 }
