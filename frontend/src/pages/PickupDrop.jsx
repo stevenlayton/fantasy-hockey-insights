@@ -70,7 +70,7 @@ export default function PickupDrop() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section>
           <h2 className="mb-3 font-display text-lg font-semibold uppercase tracking-wide text-up">
-            Add — Trending Up
+            Add - Trending Up
           </h2>
           <div className="space-y-2">
             {loading && <p className="text-sm text-slate-500">Loading…</p>}
@@ -90,7 +90,7 @@ export default function PickupDrop() {
 
         <section>
           <h2 className="mb-3 font-display text-lg font-semibold uppercase tracking-wide text-down">
-            Drop — Trending Down
+            Drop - Trending Down
           </h2>
           <div className="space-y-2">
             {loading && <p className="text-sm text-slate-500">Loading…</p>}
