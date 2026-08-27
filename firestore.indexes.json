@@ -15,6 +15,7 @@
         { "fieldPath": "rosteredEstimate", "order": "ASCENDING" },
         { "fieldPath": "score", "order": "DESCENDING" }
       ]
-      ],
+    }
+  ],
   "fieldOverrides": []
 }
