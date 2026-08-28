@@ -1,4 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from './useAuth';
 
 const TEAM_KEY = 'draftcrease:myTeam';
 const DRAFTED_KEY = 'draftcrease:draftedElsewhere';
@@ -26,18 +29,96 @@ function writeIds(key, ids) {
 
 /**
  * Your fantasy roster ("myTeam") and the list of players drafted by someone
- * else ("draftedElsewhere"), both stored only in this browser's localStorage.
+ * else ("draftedElsewhere").
  *
- * DraftCrease has no user accounts, so there's nothing to sync across
- * devices - this is intentionally a lightweight, no-login tool. Clearing
- * browser data (or using a different browser/device) clears these lists.
+ * Signed OUT (no Google account): stored only in this browser's
+ * localStorage, exactly as DraftCrease always worked before optional
+ * accounts existed. Nothing leaves the browser, and there is nothing to
+ * sync across devices.
+ *
+ * Signed IN (see hooks/useAuth.js): the same two lists live in Firestore
+ * at users/{uid}.myTeam and users/{uid}.draftedElsewhere, kept in sync in
+ * real time via onSnapshot, so the roster follows the person to any
+ * browser or device they sign into. The very first time a given account
+ * signs in and has no Firestore document yet, whatever is already in this
+ * browser's localStorage is pushed up once as a starting point (a
+ * one-time "claim" of the local list) rather than being silently
+ * discarded - see the seeded refs below. After that first seed, Firestore
+ * is the source of truth while signed in, and localStorage is the source
+ * of truth while signed out.
+ *
+ * The suppressTeamWrite / suppressDraftedWrite refs exist only to avoid a
+ * pointless round trip: when a change arrives FROM Firestore (someone
+ * else's tab, or another device), we set local state to match, and
+ * without this flag that state change would immediately trigger writing
+ * the exact same data straight back to Firestore.
  */
 export function useMyRoster() {
+  const { user } = useAuth();
+  const uid = user?.uid || null;
+
   const [myTeam, setMyTeam] = useState(() => readIds(TEAM_KEY));
   const [draftedElsewhere, setDraftedElsewhere] = useState(() => readIds(DRAFTED_KEY));
 
-  useEffect(() => writeIds(TEAM_KEY, myTeam), [myTeam]);
-  useEffect(() => writeIds(DRAFTED_KEY, draftedElsewhere), [draftedElsewhere]);
+  const suppressTeamWrite = useRef(false);
+  const suppressDraftedWrite = useRef(false);
+  const hasSeeded = useRef(false);
+
+  // Signed-out mode: mirror state to localStorage, same as always.
+  useEffect(() => {
+    if (uid) return;
+    writeIds(TEAM_KEY, myTeam);
+  }, [uid, myTeam]);
+
+  useEffect(() => {
+    if (uid) return;
+    writeIds(DRAFTED_KEY, draftedElsewhere);
+  }, [uid, draftedElsewhere]);
+
+  // Signed-in mode: subscribe to this account's Firestore document.
+  useEffect(() => {
+    hasSeeded.current = false;
+    if (!uid) return undefined;
+
+    const ref = doc(db, 'users', uid);
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        suppressTeamWrite.current = true;
+        setMyTeam(Array.isArray(data.myTeam) ? data.myTeam : []);
+        suppressDraftedWrite.current = true;
+        setDraftedElsewhere(Array.isArray(data.draftedElsewhere) ? data.draftedElsewhere : []);
+      } else if (!hasSeeded.current) {
+        hasSeeded.current = true;
+        setDoc(
+          ref,
+          { myTeam: readIds(TEAM_KEY), draftedElsewhere: readIds(DRAFTED_KEY) },
+          { merge: true }
+        );
+      }
+    });
+    return unsub;
+  }, [uid]);
+
+  // Signed-in mode: push local changes up to Firestore (skipped once for
+  // whichever update just arrived FROM Firestore, see doc comment above).
+  useEffect(() => {
+    if (!uid) return;
+    if (suppressTeamWrite.current) {
+      suppressTeamWrite.current = false;
+      return;
+    }
+    setDoc(doc(db, 'users', uid), { myTeam }, { merge: true });
+  }, [uid, myTeam]);
+
+  useEffect(() => {
+    if (!uid) return;
+    if (suppressDraftedWrite.current) {
+      suppressDraftedWrite.current = false;
+      return;
+    }
+    setDoc(doc(db, 'users', uid), { draftedElsewhere }, { merge: true });
+  }, [uid, draftedElsewhere]);
 
   const addToMyTeam = useCallback((playerId) => {
     setMyTeam((prev) => (prev.includes(playerId) ? prev : [...prev, playerId]));
