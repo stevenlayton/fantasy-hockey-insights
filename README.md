@@ -328,7 +328,7 @@ phase lands, so this stays the single source of truth for where the expansion st
    `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`.
 5. Create a **service account key** for CI deploys: Google Cloud Console -> IAM & Admin -> Service
    Accounts -> create one with the **Firebase Admin** role (or the narrower set: Cloud Functions
-   Admin, Firebase Hosting Admin, Cloud Datastore Index Admin, Service Account User) -> Keys -> Add
+   Admin, Firebase Hosting Admin, Cloud Datastore Index Admin, Cloud Scheduler Admin, Service Account User) -> Keys -> Add
    Key -> JSON. Paste the entire JSON file content into a GitHub secret named
    `FIREBASE_SERVICE_ACCOUNT`. Also add `FIREBASE_PROJECT_ID` as a secret (same value as step 3).
    **This is a real credential** - I'm intentionally not generating or handling it for you.
