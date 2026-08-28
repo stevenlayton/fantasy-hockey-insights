@@ -4,11 +4,13 @@ import { usePlayerPool } from '../hooks/usePlayerPool';
 import AdSlot from '../components/AdSlot';
 import TrendBadge from '../components/TrendBadge';
 import { GitCompare, Search, X } from 'lucide-react';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 const MAX_PLAYERS = 4;
 const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
 
 export default function Compare() {
+  useDocumentMeta('Compare Players', 'Compare NHL players side by side on trend scores, projections, and per game stats.', '/compare');
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
 
