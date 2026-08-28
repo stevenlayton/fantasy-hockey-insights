@@ -234,16 +234,13 @@ before recommending anything:
   is just `totalGoals / totalShots`, both already summed. Zero new API calls.
 - **Consistency (boom-or-bust) score** - shipped. Computed from the same 15-game log already
   sampled for the trend score; no new data needed, just a new formula (`computeConsistency()`).
-- **Hits and blocked shots** - real signal for "banger" league formats that score them, and
-  genuinely available for free, but NOT on any per-player endpoint the app currently calls. They
-  live on a separate bulk season-totals endpoint:
-  `https://api.nhle.com/stats/rest/en/skater/realtime?cayenneExp=seasonId=20252026 and gameTypeId=2`
-  (paginated via `limit`/`start`, one or two calls covers the whole league rather than one call
-  per player). Recommended for a follow-up pass: fetch once per Draft Guide run, join by
-  `playerId`.
-- **Faceoff win%** - same situation, valuable specifically for ranking centers, available via
-  `https://api.nhle.com/stats/rest/en/skater/faceoffpercentages` (same bulk pattern as above).
-  Recommended, not yet built.
+- **Hits, blocked shots, and faceoff win%** - shipped. Not on any per-player endpoint the app
+  otherwise calls, so these come from a separate bulk season-totals endpoint fetched once per
+  Draft Guide run and joined by `playerId`: `https://api.nhle.com/stats/rest/en/skater/realtime`
+  for hits and blocked shots, `https://api.nhle.com/stats/rest/en/skater/faceoffpercentages` for
+  faceoff win%. Hits and blocks are projected to a full season the same way as PIM and plus/minus;
+  faceoff win% is shown as-is since it is already a rate stat. Faceoff win% is null for players who
+  never take a draw (most wings and defensemen), matching the source data.
 - **Giveaways and takeaways** - available on that same `skater/realtime` endpoint as hits/blocks,
   but almost no standard fantasy league scores them. Judged as noise relative to hits/blocks and
   intentionally skipped rather than cluttering the page.
