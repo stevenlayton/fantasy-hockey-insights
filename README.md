@@ -29,15 +29,15 @@ this project.
 
 ```
 Cloud Scheduler (via onSchedule)
-        │
-        ▼
-Cloud Function (ingestStats / ingestNews / ingestDraftGuide)
-        │  fetches NHL API / RSS feeds
-        │  computes scores (see scoring.js for the formula, fully commented)
-        ▼
-Firestore  (players/, scores/, news/, draftGuide/, meta/)
-        │  read-only, public
-        ▼
+  |
+  v
+Cloud Function (ingestStats / ingestNews / ingestDraftGuide / ingestScoreboard)
+  | fetches NHL API / RSS feeds
+  | computes scores (see scoring.js for the formula, fully commented)
+  v
+Firestore (players/, scores/, news/, draftGuide/, scoreboard/, meta/)
+  | read-only, public
+  v
 React frontend (onSnapshot listeners - no live API calls from the browser, ever)
 ```
 
@@ -48,34 +48,102 @@ React frontend (onSnapshot listeners - no live API calls from the browser, ever)
 - `scheduledNewsIngestion` - hourly. Pulls configured RSS feeds, dedupes by article URL.
 - `scheduledDraftGuideIngestion` - daily. Ranks players by position using last season's per-game
   production projected to an 82-game season. Deliberately simple ("basic projections" per spec).
-- `runIngestionNow` - an HTTPS endpoint to trigger any of the above on demand (`?job=stats|news|draftGuide|all`),
-  so you don't have to wait for the first scheduled run. **Lock this down or delete it** once the
-  site has real traffic - right now it's open to anyone who finds the URL.
+- `scheduledScoreboardIngestion` - every 15 minutes. Pulls today's (or the next scheduled day's)
+  NHL scoreboard for the "Around the League" widget. See `functions/src/ingestScoreboard.js`.
+- `runIngestionNow` - an HTTPS endpoint to trigger any of the above on demand
+  (`?job=stats|news|draftGuide|scoreboard|all`), so you don't have to wait for the first scheduled
+  run. **Lock this down or delete it** once the site has real traffic - right now it's open to
+  anyone who finds the URL.
 
-## What's built vs. what's left
+## What's built vs. what's left (original MVP)
 
-Built: full Firestore schema + rules, all three ingestion Cloud Functions with a documented
-scoring model, all four frontend pages (Trends Dashboard, Pickup/Drop, Draft Guide, Player Detail)
-reading live from Firestore, AdSense wiring (inactive until approved), CI/CD via GitHub Actions.
+Built: full Firestore schema + rules, all ingestion Cloud Functions with a documented scoring
+model, core frontend pages reading live from Firestore, AdSense wiring (inactive until approved),
+CI/CD via GitHub Actions.
 
 Not built yet / roadmap:
-- **First real deploy + data load** - see "Deploying" below; this needs a few things only you can
-  do (Firebase project + billing, GitHub secrets).
 - **Injury status** on Player Detail - NHL's free API doesn't reliably expose this; the page has
   an honest placeholder rather than fake data. A future source (e.g. scraping team injury reports,
   or a paid sports-data API) would slot into `players/{id}` as a new field.
-- **RSS feed URLs are best-effort** - I could only spot-check one live during a build with limited
-  network access. Check `ingestNews` logs after first deploy; dead feeds log a warning per-source
-  rather than crashing anything.
+- **RSS feed URLs are best-effort** - dead feeds log a warning per-source rather than crashing
+  anything. Check `ingestNews` logs periodically.
 - **NHL.com news** needs a proxy feed URL (NHL.com has no native RSS) - see
   `functions/src/rssSources.js` for the one-time setup.
-- **Firebase App Check** - recommended before AdSense/real traffic, to make sure only your own
+- **Firebase App Check** - recommended before real traffic scales up, to make sure only our own
   frontend can read Firestore (rules are read-only already, but App Check stops scraping/abuse).
 - **Real fantasy ownership %** - `rosteredEstimate` is a heuristic (season PPG/TOI thresholds), not
   real waiver-wire data, since there's no budget for a paid fantasy-platform API. Documented in
   `scoring.js`.
 - **Other sports** - the ingestion/scoring pattern generalizes, but every NHL-specific piece
   (`nhlApi.js`, team codes, position codes) would need sport-specific equivalents.
+
+## Feature Expansion: Draft Intelligence Platform
+
+Steven's brief (Aug 2026): evolve the site from a rankings site into a "Draft Intelligence"
+platform. Core product principle - answer "who should I draft right now?" better than any
+competitor, entirely free/ad-supported, no required accounts (optional Google sign-in only for
+saving state across devices, never a paywall). **This section is the living status tracker for
+that expansion - update it every time a piece ships or a decision is made, so the plan survives
+context resets between sessions.**
+
+### Key decisions (locked in with Steven - don't relitigate without checking with him)
+
+- **No real ADP data source.** There is no free, ToS-safe API for fantasy hockey ADP (average
+  draft position - the crowd-sourced pick number a player typically goes off the board). Rather
+  than scrape one or fabricate a number, our own site rank (from `draftGuide.positionRank` /
+  projected points) is used as the "expected draft slot" proxy everywhere the spec calls for ADP.
+  This is shown to users as **Site Rank**, never labeled as true ADP, so we're never passing off
+  an internal number as real third-party consensus data.
+- **Deterministic, not LLM-generated, explanations.** "Why is this Draft IQ 94?" and similar copy
+  is built from templates driven by the actual calculated inputs (value delta, scarcity, category
+  fit, etc.), not a per-request AI call. Keeps the product free and fast. If a real LLM
+  integration ever makes sense later, it must be optional and cost-bounded, never required for
+  core functionality.
+- **Formulas live in dedicated, commented files with named constants at the top** - same pattern
+  as `functions/src/scoring.js` - specifically so Steven can open one file, read the weights in
+  plain English, and tune them without touching application logic. Every new formula (Draft IQ,
+  breakout/bust scores, roster category grades, tier cutoffs) follows this pattern.
+
+### Status by feature (from Steven's Aug 2026 spec)
+
+1. **Live Draft Assistant** - partial. Draft Board tracks drafted/mine/other, filters, search,
+   print. Missing: draft config (teams/position/snake/rounds/scoring), scarcity, tiers,
+   STEAL/REACH tags, suggested next picks.
+2. **Draft IQ** - not started. Signature 0-100 score with Value/Team Fit/Scarcity/Upside/Risk
+   components and a "why" explanation.
+3. **League-specific rankings** - not started. `useLeagueSettings` currently only stores roster
+   position targets, not a category scoring system. No "Default Rank vs Your League Rank" yet.
+4. **Mock draft simulator** - not started. No bot opponents or difficulty modes.
+5. **Post-draft report card** - not started. My Team's A-F grade is a simple fill-ratio+trend
+   score, not the full best-pick/biggest-reach/category-grade report.
+6. **Shareable draft card** - not started.
+7. **Player Battles / Who Should I Draft** - partial. Compare.jsx does ad hoc side-by-side stats
+   for up to 4 players; no SEO-indexable per-matchup pages, no Our Pick / For Your League verdict.
+8. **Will He Be There Next Round** - not started.
+9. **Sleeper/Breakout/Bust engine** - partial. Sleepers.jsx does breakouts + fallers off one
+   score; missing component breakdown, busts, bouncebacks, rookies, lottery tickets.
+10. **Roster Intelligence** - partial. My Team shows position-count fill + overall grade; missing
+    per-category (goals/assists/PPP/hits/blocks/goaltending) bars tied to "why this pick helps".
+11. **Draft tier alerts** - not started.
+12. **ADP value board** - not started (was blocked on the ADP question, now unblocked by the
+    Site Rank decision above).
+13. **AI-style draft explanations** - not started (see deterministic-templates decision above).
+14. **User retention** - partial. localStorage roster/settings persist; no saved mocks/grades/
+    watchlist yet. Optional Google sign-in in progress for cross-device sync.
+15. **Ad-supported design** - done. AdSlot wired header/in-feed/sidebar everywhere, kept out of
+    the live Draft Board decision path per spec.
+
+### Phase plan (Steven's own ordering)
+
+- [ ] **Phase 1**: league scoring customization, Draft IQ engine, Site Rank/ADP-proxy value
+      board, roster category intelligence, live draft board upgrades
+- [ ] **Phase 2**: mock draft simulator (bots), draft grading, shareable draft cards
+- [ ] **Phase 3**: SEO player-battle pages, sleeper/breakout/bust engine expansion, Will He Be
+      There Next Round, tier alerts
+- [ ] **Phase 4**: retention (saved mocks/history/watchlist), SEO polish, ad placement tuning
+
+Check items off (or replace the checkbox line with a one-line "done, see commit X" note) as each
+phase lands, so this stays the single source of truth for where the expansion stands.
 
 ## One-time setup (things only you can do)
 
@@ -87,48 +155,46 @@ Not built yet / roadmap:
    size should cost close to $0/month, but it does require a billing method on file, so I can't do
    this step for you.
 3. Put the real project ID in `.firebaserc` (replace `REPLACE_WITH_YOUR_FIREBASE_PROJECT_ID`).
-4. In Firebase Console → Project Settings → General, add a **Web app** and copy its config into
-   GitHub repo secrets (Settings → Secrets and variables → Actions):
+4. In Firebase Console -> Project Settings -> General, add a **Web app** and copy its config into
+   GitHub repo secrets (Settings -> Secrets and variables -> Actions):
    `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`,
    `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`.
-5. Create a **service account key** for CI deploys: Google Cloud Console → IAM & Admin → Service
-   Accounts → create one with the **Firebase Admin** role (or the narrower set: Cloud Functions
-   Admin, Firebase Hosting Admin, Cloud Datastore Index Admin, Service Account User) → Keys → Add
-   Key → JSON. Paste the entire JSON file content into a GitHub secret named
+5. Create a **service account key** for CI deploys: Google Cloud Console -> IAM & Admin -> Service
+   Accounts -> create one with the **Firebase Admin** role (or the narrower set: Cloud Functions
+   Admin, Firebase Hosting Admin, Cloud Datastore Index Admin, Service Account User) -> Keys -> Add
+   Key -> JSON. Paste the entire JSON file content into a GitHub secret named
    `FIREBASE_SERVICE_ACCOUNT`. Also add `FIREBASE_PROJECT_ID` as a secret (same value as step 3).
    **This is a real credential** - I'm intentionally not generating or handling it for you.
 6. Push to `main` (or click "Run workflow" on the Actions tab) - GitHub Actions builds and deploys
-   everything. Check the Actions log for errors; this is the first time this exact pipeline runs,
-   so treat the first run or two as a debugging pass.
+   everything. Check the Actions log for errors.
 7. Hit `https://<region>-<project-id>.cloudfunctions.net/runIngestionNow?job=all` once after the
    first successful deploy so the site has data immediately instead of waiting up to 5 hours.
 
 ## Connecting draftcrease.com
 
 Once Hosting is live on its default URL (`<project-id>.web.app`), add the custom domain in
-Firebase Console → Hosting → Add custom domain → `draftcrease.com`. Firebase will generate the
-exact DNS records to add in Namecheap (typically an **A record** (and a second A record for the
-apex, or a **TXT record** for verification first) - Firebase shows the literal values once you
-start that flow, and they're specific to your project, so I can't pre-supply them here). Add
-`www.draftcrease.com` as a second custom domain the same way if you want the www subdomain too.
+Firebase Console -> Hosting -> Add custom domain -> `draftcrease.com`. Firebase will generate the
+exact DNS records to add in Namecheap (typically an **A record** and a **TXT record** for
+verification first) - Firebase shows the literal values once you start that flow, and they're
+specific to your project. Add `www.draftcrease.com` as a second custom domain the same way if you
+want the www subdomain too.
 
 ## AdSense
 
 `AdSlot.jsx` reads `VITE_ADSENSE_CLIENT_ID`. Until it's set, ad positions render a labeled dashed
 placeholder (no fake ads, no broken embed). To activate: create an AdSense account, get the site
-approved (needs real content live at draftcrease.com first - chicken-and-egg with deploying),
-create ad units for the header/in-feed/sidebar slots, then set `VITE_ADSENSE_CLIENT_ID` (and
-optionally per-slot `data-ad-slot` IDs) as a GitHub secret / in `frontend/.env.local` for local
-dev.
+approved, create ad units for the header/in-feed/sidebar slots, then set `VITE_ADSENSE_CLIENT_ID`
+(and optionally per-slot `data-ad-slot` IDs) as a GitHub secret / in `frontend/.env.local` for
+local dev.
 
 ## Local development
 
 ```bash
-cd frontend && cp .env.example .env.local   # fill in Firebase web config
+cd frontend && cp .env.example .env.local # fill in Firebase web config
 npm install
 npm run dev
 
-cd ../functions && cp .env.example .env     # optional: NHL_PROXY_RSS_URL
+cd ../functions && cp .env.example .env # optional: NHL_PROXY_RSS_URL
 npm install
-firebase emulators:start   # requires `npm install -g firebase-tools` once, and `firebase login`
+firebase emulators:start # requires `npm install -g firebase-tools` once, and `firebase login`
 ```
