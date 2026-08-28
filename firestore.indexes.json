@@ -17,13 +17,6 @@
       ]
     },
     {
-      "collectionGroup": "news",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publishedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "draftGuide",
       "queryScope": "COLLECTION",
       "fields": [
