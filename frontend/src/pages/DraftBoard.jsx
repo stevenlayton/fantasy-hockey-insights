@@ -9,8 +9,8 @@ import FreshnessBadge from '../components/FreshnessBadge';
 import { ListChecks, Plus, UserX, Undo2, RotateCcw, Printer } from 'lucide-react';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
-const POSITIONS = ['ALL', 'C', 'L', 'R', 'D'];
-const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
+const POSITIONS = ['ALL', 'C', 'L', 'R', 'D', 'G'];
+const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D', G: 'G' };
 
 export default function DraftBoard() {
   useDocumentMeta('Draft Board', 'Track your fantasy hockey draft picks live and see who is still available at every position.', '/draft-board');
@@ -36,7 +36,7 @@ export default function DraftBoard() {
   );
 
   const positionCounts = useMemo(() => {
-    const counts = { C: 0, L: 0, R: 0, D: 0 };
+    const counts = { C: 0, L: 0, R: 0, D: 0, G: 0 };
     myTeamPlayers.forEach((p) => {
       if (counts[p.position] !== undefined) counts[p.position] += 1;
     });
