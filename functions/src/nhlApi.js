@@ -29,8 +29,8 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchJson(path, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
-  const url = `${NHL_BASE}${path}`;
+async function fetchJson(path, { timeoutMs = DEFAULT_TIMEOUT_MS, baseUrl = NHL_BASE } = {}) {
+    const url = `${baseUrl}${path}`;
   let lastErr;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -107,6 +107,33 @@ function getPlayerLanding(playerId) {
   return fetchJson(`/v1/player/${playerId}/landing`);
 }
 
+const NHL_STATS_BASE = 'https://api.nhle.com/stats/rest/en';
+
+/**
+ * Bulk skater "realtime" stats (hits, blocked shots, giveaways, takeaways)
+  * for an ENTIRE season in one call - a different NHL host than the
+   * per-player game-log API above. Confirmed live (Aug 2026): response shape
+    * is { data: [ { playerId, hits, blockedShots, gamesPlayed, ... } ], total },
+     * and limit=-1 returns every skater (roughly 920) with no pagination
+      * needed. Used by ingestDraftGuide.js since hits/blocks aren't exposed by
+       * the per-game endpoint at all.
+        */
+function getSkaterRealtimeStatsBulk(season) {
+    return fetchJson(`/skater/realtime?cayenneExp=seasonId=${season}%20and%20gameTypeId=2&limit=-1`, {
+          baseUrl: NHL_STATS_BASE,
+    });
+}
+
+/**
+ * Same bulk-endpoint pattern as above, for faceoff percentages. faceoffWinPct
+  * comes back null for skaters who never take a faceoff (most wings/D).
+   */
+function getSkaterFaceoffPercentagesBulk(season) {
+    return fetchJson(`/skater/faceoffpercentages?cayenneExp=seasonId=${season}%20and%20gameTypeId=2&limit=-1`, {
+          baseUrl: NHL_STATS_BASE,
+    });
+}
+
 /** Parse NHL's "MM:SS" time-on-ice string into decimal minutes. Returns 0 for missing/malformed input. */
 function toiToMinutes(toiStr) {
   if (!toiStr || typeof toiStr !== 'string' || !toiStr.includes(':')) return 0;
@@ -133,4 +160,6 @@ module.exports = {
   getPlayerLanding,
   toiToMinutes,
   flattenRoster,
+  getSkaterRealtimeStatsBulk,
+  getSkaterFaceoffPercentagesBulk,
 };
