@@ -1,6 +1,8 @@
 import { ShieldCheck } from 'lucide-react';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 export default function Privacy() {
+  useDocumentMeta('Privacy Policy', 'DraftCrease privacy policy covering data collection, cookies, and advertising.', '/privacy');
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6 flex items-center gap-2">
