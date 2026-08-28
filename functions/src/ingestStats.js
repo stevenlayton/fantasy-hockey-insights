@@ -93,7 +93,7 @@ const commitIfNeeded = async () => {
 };
 
 for (const entry of scored) {
-  const { player, gameLog, raw, score, zScores, rosteredEstimate } = entry;
+  const { player, gameLog, raw, score, zScores, rosteredEstimate, consistency } = entry;
 
   const playerRef = db.collection('players').doc(String(player.id));
   batch.set(
