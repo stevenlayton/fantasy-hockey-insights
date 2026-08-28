@@ -163,10 +163,111 @@ return playersWithRawSignals.map((p) => {
 });
 }
 
+
+/**
+ * ===== Goalie pickup/drop scoring =====
+ *
+ * Same "recent vs baseline" philosophy as the skater model above, applied
+ * to goalie-specific signals since points/shots/toi don't apply to
+ * goalies. Uses the same RECENCY_WEIGHTS (last 5 / 10 / 15 games) so both
+ * models trend on the same time window.
+ *
+ * Signals (each a recent-vs-baseline delta, like the skater model):
+ *   savePctgTrend      = recencyWeighted(savePctg) - baseline(savePctg)
+ *   goalsAgainstTrend  = baseline(goalsAgainst) - recencyWeighted(goalsAgainst)
+ *                        (inverted: allowing FEWER goals recently is an
+ *                        improvement, so a positive trend means better play)
+ *   winRateTrend       = recencyWeighted(isWin) - baseline(isWin)
+ *
+ * These are z-scored across the goalie pool the same way as skaters, then
+ * combined with GOALIE_SCORE_WEIGHTS below. Weights favor save percentage
+ * first (the clearest signal of a goalie actually playing better, not just
+ * getting better run support), then goals against, then win rate last
+ * (wins are heavily influenced by the team in front of the goalie).
+ */
+const GOALIE_SCORE_WEIGHTS = Object.freeze({ savePctg: 0.45, goalsAgainst: 0.30, wins: 0.25 });
+
+/**
+ * Compute the raw (pre-normalization) trend signals for one goalie from
+ * their game log (most-recent-first array, already sliced to <= 15 games
+ * by the caller). gameLog entries are expected to have: decision ('W' on
+ * a win, anything else counted as a non-win), savePctg, goalsAgainst, toi.
+ */
+function computeGoalieRawSignals(gameLog) {
+  const last5 = gameLog.slice(0, 5);
+  const last10 = gameLog.slice(0, 10);
+  const last15 = gameLog.slice(0, 15);
+  const baseline = gameLog;
+
+  const recencyWeighted = (metricFn) =>
+    RECENCY_WEIGHTS.last5 * average(last5.map(metricFn)) +
+    RECENCY_WEIGHTS.last10 * average(last10.map(metricFn)) +
+    RECENCY_WEIGHTS.last15 * average(last15.map(metricFn));
+
+  const savePctgFn = (g) => g.savePctg || 0;
+  const goalsAgainstFn = (g) => g.goalsAgainst || 0;
+  const winFn = (g) => (g.decision === 'W' ? 1 : 0);
+
+  return {
+    gamesSampled: baseline.length,
+    savePctgTrend: recencyWeighted(savePctgFn) - average(baseline.map(savePctgFn)),
+    goalsAgainstTrend: average(baseline.map(goalsAgainstFn)) - recencyWeighted(goalsAgainstFn),
+    winRateTrend: recencyWeighted(winFn) - average(baseline.map(winFn)),
+    display: {
+      savePctgLast5: average(last5.map(savePctgFn)),
+      savePctgSeason: average(baseline.map(savePctgFn)),
+      goalsAgainstLast5: average(last5.map(goalsAgainstFn)),
+      goalsAgainstSeason: average(baseline.map(goalsAgainstFn)),
+      winsSeason: baseline.filter((g) => g.decision === 'W').length,
+    },
+  };
+}
+
+/**
+ * Given raw signals for EVERY goalie processed in this ingestion run,
+ * compute pool-wide z-scores and the final composite score for each.
+ * Mirrors scorePlayerPool above but for the goalie signal set.
+ */
+function scoreGoaliePool(goaliesWithRawSignals) {
+  const saveStats = meanAndStdDev(goaliesWithRawSignals.map((g) => g.raw.savePctgTrend));
+  const gaStats = meanAndStdDev(goaliesWithRawSignals.map((g) => g.raw.goalsAgainstTrend));
+  const winStats = meanAndStdDev(goaliesWithRawSignals.map((g) => g.raw.winRateTrend));
+
+  return goaliesWithRawSignals.map((g) => {
+    const zSave = zScore(g.raw.savePctgTrend, saveStats);
+    const zGa = zScore(g.raw.goalsAgainstTrend, gaStats);
+    const zWin = zScore(g.raw.winRateTrend, winStats);
+
+    const score =
+      GOALIE_SCORE_WEIGHTS.savePctg * zSave +
+      GOALIE_SCORE_WEIGHTS.goalsAgainst * zGa +
+      GOALIE_SCORE_WEIGHTS.wins * zWin;
+
+    // Same "likely already rostered" heuristic as skaters, adapted for
+    // goalies: a goalie who has actually been getting starts (5+ games
+    // sampled) is assumed rostered in a typical league.
+    const rosteredEstimate = g.raw.gamesSampled >= 5;
+
+    return {
+      ...g,
+      score: Number(score.toFixed(4)),
+      zScores: {
+        savePctg: Number(zSave.toFixed(3)),
+        goalsAgainst: Number(zGa.toFixed(3)),
+        wins: Number(zWin.toFixed(3)),
+      },
+      rosteredEstimate,
+    };
+  });
+}
+
 module.exports = {
   SCORE_WEIGHTS,
   RECENCY_WEIGHTS,
   computeRawSignals,
   scorePlayerPool,
   average,
+  GOALIE_SCORE_WEIGHTS,
+  computeGoalieRawSignals,
+  scoreGoaliePool,
 };
