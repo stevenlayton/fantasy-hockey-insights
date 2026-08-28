@@ -36,6 +36,14 @@ export default function PlayerDetail() {
   );
   const { myTeam, draftedElsewhere, addToMyTeam, markDraftedElsewhere, undraft } = useMyRoster();
 
+  useDocumentMeta(
+    player ? `${player.firstName} ${player.lastName}` : 'Player',
+    player
+      ? `${player.firstName} ${player.lastName} (${player.team}) fantasy hockey stats, trend score, and projections.`
+      : 'NHL player fantasy hockey stats, trend score, and projections.',
+    `/player/${id}`
+  );
+
   const loading = playerLoading || scoreLoading || logsLoading;
 
   if (loading) {
@@ -55,12 +63,6 @@ export default function PlayerDetail() {
       </div>
     );
   }
-
-    useDocumentMeta(
-    `${player.firstName} ${player.lastName}`,
-    `${player.firstName} ${player.lastName} (${player.team}) fantasy hockey stats, trend score, and projections.`,
-    `/player/${id}`
-  );
 
   const isMine = myTeam.includes(playerIdNum);
   const isOther = draftedElsewhere.includes(playerIdNum);
