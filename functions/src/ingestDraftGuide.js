@@ -6,6 +6,23 @@ const CONCURRENCY = 8;
 const REQUEST_STAGGER_MS = 50;
 const PROJECTED_SEASON_GAMES = 82;
 
+// ===== Goalie projection knobs =====
+// PROJECTED_GOALIE_GAMES: assumed games played for a full, healthy season.
+// A true workhorse starter plays more like 60-65; this is deliberately
+// conservative since most goalies split time with a backup at some point.
+const PROJECTED_GOALIE_GAMES = 55;
+// GOALIE_FANTASY_WEIGHTS: converts a goalie's projected season into a
+// single "projectedPoints" number, on roughly the same scale as skater
+// projectedPoints, so the two can share the Draft Guide/Draft Board
+// ranking and sorting code unchanged. Tune these to match your league's
+// actual goalie scoring categories.
+const GOALIE_FANTASY_WEIGHTS = Object.freeze({
+  winPoints: 2, // fantasy points per projected win
+  shutoutPoints: 3, // fantasy points per projected shutout
+  savePctgScale: 1600, // multiplier applied to save% above replacement level
+  replacementSavePctg: 0.89, // save% at or below this earns zero bonus points
+});
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -53,13 +70,16 @@ async function runDraftGuideIngestion(priorSeason) {
   logger.info('ingestDraftGuide: starting run', { priorSeason });
 
 const rosters = await mapWithConcurrency(TEAM_CODES, CONCURRENCY, async (team) => {
-  const roster = await getTeamRoster(team);
-  return { team, players: flattenRoster(roster, { includeGoalies: false }) };
-});
+    const roster = await getTeamRoster(team);
+    return { team, players: flattenRoster(roster, { includeGoalies: true }) };
+  });
 
-const allSkaters = rosters
-  .filter(Boolean)
-  .flatMap(({ team, players }) => players.map((p) => ({ ...p, team })));
+  const allTeamPlayers = rosters
+    .filter(Boolean)
+    .flatMap(({ team, players }) => players.map((p) => ({ ...p, team })));
+
+  const allSkaters = allTeamPlayers.filter((p) => p.positionCode !== 'G');
+  const allGoalies = allTeamPlayers.filter((p) => p.positionCode === 'G');
 
 const withSeasonTotals = await mapWithConcurrency(allSkaters, CONCURRENCY, async (player) => {
   const log = await getPlayerGameLog(player.id, priorSeason, 2);
@@ -86,9 +106,57 @@ const withSeasonTotals = await mapWithConcurrency(allSkaters, CONCURRENCY, async
                                                   };
 });
 
-const valid = withSeasonTotals.filter(Boolean);
+// Goalies: separate season-totals computation since wins/save%/GAA
+  // replace points/goals/assists. See PROJECTED_GOALIE_GAMES and
+  // GOALIE_FANTASY_WEIGHTS above for the tunable knobs.
+  const withGoalieSeasonTotals = await mapWithConcurrency(allGoalies, CONCURRENCY, async (player) => {
+    const log = await getPlayerGameLog(player.id, priorSeason, 2);
+    const games = log.gameLog || [];
+    if (games.length === 0) return null;
 
-// Rank within position.
+    const gamesPlayed = games.length;
+    const wins = games.filter((g) => g.decision === 'W').length;
+    const shutouts = games.reduce((sum, g) => sum + (g.shutouts || 0), 0);
+    const avgSavePctg = games.reduce((sum, g) => sum + (g.savePctg || 0), 0) / gamesPlayed;
+    const avgGoalsAgainst = games.reduce((sum, g) => sum + (g.goalsAgainst || 0), 0) / gamesPlayed;
+    const winRate = wins / gamesPlayed;
+    const projectedWins = Number((winRate * PROJECTED_GOALIE_GAMES).toFixed(1));
+    const projectedShutouts = Number(((shutouts / gamesPlayed) * PROJECTED_GOALIE_GAMES).toFixed(2));
+
+    // Fantasy points formula: wins and shutouts are worth flat point
+    // amounts (common goalie category weights), and save percentage only
+    // contributes once it clears a "replacement level" backup goalie
+    // baseline - this keeps two goalies with a similar win total but very
+    // different save percentages from scoring the same.
+    const savePctgBonus =
+      Math.max(0, avgSavePctg - GOALIE_FANTASY_WEIGHTS.replacementSavePctg) *
+      GOALIE_FANTASY_WEIGHTS.savePctgScale;
+    const projectedPoints = Number(
+      (
+        projectedWins * GOALIE_FANTASY_WEIGHTS.winPoints +
+        projectedShutouts * GOALIE_FANTASY_WEIGHTS.shutoutPoints +
+        savePctgBonus
+      ).toFixed(1)
+    );
+
+    return {
+      player,
+      gamesPlayed,
+      wins,
+      shutouts,
+      savePctg: Number(avgSavePctg.toFixed(3)),
+      goalsAgainstAvg: Number(avgGoalsAgainst.toFixed(2)),
+      projectedWins,
+      projectedShutouts,
+      projectedPoints,
+    };
+  });
+
+  const validGoalies = withGoalieSeasonTotals.filter(Boolean);
+
+  const valid = [...withSeasonTotals.filter(Boolean), ...validGoalies];
+
+  // Rank within position.
 const byPosition = {};
   for (const entry of valid) {
     const pos = entry.player.positionCode;
