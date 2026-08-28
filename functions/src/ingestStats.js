@@ -1,7 +1,7 @@
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { logger } = require('firebase-functions');
 const { TEAM_CODES, getTeamRoster, getPlayerGameLogNow, toiToMinutes, flattenRoster } = require('./nhlApi');
-const { computeRawSignals, scorePlayerPool, computeGoalieRawSignals, scoreGoaliePool } = require('./scoring');
+const { computeRawSignals, computeConsistency, scorePlayerPool, computeGoalieRawSignals, scoreGoaliePool } = require('./scoring');
 
 const GAMES_TO_SAMPLE = 15; // "last 15 games" ceiling used as the season baseline window
 const CONCURRENCY = 8; // simultaneous in-flight NHL API requests - be a polite citizen of a free, undocumented API
@@ -67,7 +67,8 @@ const withRawSignals = await mapWithConcurrency(allSkaters, CONCURRENCY, async (
   if (gameLog.length === 0) return null; // player hasn't played this season yet (injured/AHL/etc)
 
                                                 const raw = computeRawSignals(gameLog, toiToMinutes);
-  return { player, gameLog, raw };
+  const consistency = computeConsistency(gameLog);
+  return { player, gameLog, raw, consistency };
 });
 
 const validPlayers = withRawSignals.filter(Boolean);
@@ -123,6 +124,8 @@ for (const entry of scored) {
       shots: game.shots,
       powerPlayPoints: game.powerPlayPoints,
       toi: game.toi,
+      pim: game.pim ?? 0,
+      plusMinus: game.plusMinus ?? 0,
     });
     opsInBatch++;
     await commitIfNeeded();
@@ -139,6 +142,7 @@ for (const entry of scored) {
     rosteredEstimate,
     gamesSampled: raw.gamesSampled,
     display: raw.display,
+    consistency: consistency || null,
     computedAt: FieldValue.serverTimestamp(),
   });
   opsInBatch++;
