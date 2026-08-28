@@ -3,21 +3,23 @@ import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
 import { useMyRoster } from '../hooks/useMyRoster';
+import { useLeagueSettings } from '../hooks/useLeagueSettings';
 import PlayerCard from '../components/PlayerCard';
 import AdSlot from '../components/AdSlot';
-import { UserCircle, Search, X } from 'lucide-react';
+import { UserCircle, Search, X, Settings, RotateCcw } from 'lucide-react';
 
 const POSITIONS = ['C', 'L', 'R', 'D'];
 const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
-const TARGET_COUNTS = { C: 2, L: 2, R: 2, D: 4 };
 
 export default function MyTeam() {
   const [search, setSearch] = useState('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { data: pool, loading } = useFirestoreQuery(
     () => query(collection(db, 'scores'), orderBy('score', 'desc'), limit(600)),
     []
   );
   const { myTeam, draftedElsewhere, addToMyTeam, removeFromMyTeam } = useMyRoster();
+  const { targets, setTarget, resetTargets } = useLeagueSettings();
 
   const myPlayers = useMemo(
     () => pool.filter((p) => myTeam.includes(p.playerId)),
@@ -98,20 +100,56 @@ export default function MyTeam() {
         <AdSlot variant="header" />
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         {POSITIONS.map((pos) => (
           <span
             key={pos}
             className={`rounded-md px-3 py-1.5 text-sm font-semibold ${
-              positionCounts[pos] < TARGET_COUNTS[pos]
+              positionCounts[pos] < targets[pos]
                 ? 'bg-down/10 text-down ring-1 ring-down/30'
                 : 'bg-rink-800 text-slate-400'
             }`}
           >
-            {POSITION_LABELS[pos]}: {positionCounts[pos]} / {TARGET_COUNTS[pos]}
+            {POSITION_LABELS[pos]}: {positionCounts[pos]} / {targets[pos]}
           </span>
         ))}
+        <button
+          onClick={() => setSettingsOpen((v) => !v)}
+          title="Customize roster targets for your league"
+          className="ml-1 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-slate-500 hover:text-slate-300"
+        >
+          <Settings size={14} />
+          League settings
+        </button>
       </div>
+
+      {settingsOpen && (
+        <div className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-rink-border bg-rink-900 p-4">
+          {POSITIONS.map((pos) => (
+            <label key={pos} className="flex flex-col gap-1 text-xs text-slate-500">
+              {POSITION_LABELS[pos]} needed
+              <input
+                type="number"
+                min="0"
+                max="12"
+                value={targets[pos]}
+                onChange={(e) => setTarget(pos, e.target.value)}
+                className="w-16 rounded-md border border-rink-border bg-rink-950 px-2 py-1 text-sm text-slate-200 focus:border-ice-500 focus:outline-none"
+              />
+            </label>
+          ))}
+          <button
+            onClick={resetTargets}
+            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-slate-500 hover:text-slate-300"
+          >
+            <RotateCcw size={12} /> Reset to default
+          </button>
+          <p className="w-full text-xs text-slate-600">
+            Match these to your real league's roster spots so the counts above tell you what to
+            target. Saved in this browser only.
+          </p>
+        </div>
+      )}
 
       {loading && <p className="text-sm text-slate-500">Loading…</p>}
 
