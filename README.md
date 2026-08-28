@@ -55,6 +55,23 @@ React frontend (onSnapshot listeners - no live API calls from the browser, ever)
   run. **Lock this down or delete it** once the site has real traffic - right now it's open to
   anyone who finds the URL.
 
+## Frontend data layer: draftGuide vs scores (read this before adding a new page)
+
+`draftGuide` is the full player universe (preseason projections, available year-round for every
+rostered NHL player). `scores` only has a doc for a player once they have current-season game
+logs to compute a trend score from, which is empty or sparse for most of the off-season. A page
+that queries `scores` as if it were the complete player list will silently drop any player who
+doesn't have a trend score yet - this caused a real bug where a player added to My Team from the
+Draft Board (which correctly reads `draftGuide`) would vanish on the My Team page (which
+incorrectly read only `scores`), and where Compare's search couldn't find players like Nathan
+MacKinnon who hadn't logged current-season games yet.
+
+**Any new page that looks up players by ID or searches by name should use
+`frontend/src/hooks/usePlayerPool.js`**, which merges `draftGuide` (the full universe) with
+`scores` (trend data layered on top when available) into one consistent list. My Team and Compare
+were both refactored to use this hook (Aug 2026) - don't reintroduce a direct `scores`-only query
+in a new page without a specific reason.
+
 ## What's built vs. what's left (original MVP)
 
 Built: full Firestore schema + rules, all ingestion Cloud Functions with a documented scoring
@@ -104,6 +121,23 @@ context resets between sessions.**
   plain English, and tune them without touching application logic. Every new formula (Draft IQ,
   breakout/bust scores, roster category grades, tier cutoffs) follows this pattern.
 
+### Recent fixes (Aug 2026, from a ChatGPT review Steven ran against the live site)
+
+- **My Team / Draft Board sync bug** - fixed. Root cause and the new shared-pool rule are
+  documented above in "Frontend data layer: draftGuide vs scores". Both pages now use
+  `usePlayerPool`; a new "Steady / No Trend Data Yet" section on My Team also shows roster
+  players who don't have a trend score yet, instead of silently omitting them from every list.
+- **Compare search missing players** - fixed, same root cause and same hook.
+- **Draft Board's "run a full solo mock draft" copy** - reworded to describe what actually exists
+  today (manual pick tracking), since there's no bot-driven simulation engine yet (that's Phase 2,
+  item 4 below).
+- **Goalies are entirely absent** (rankings, projections, roster slots, scoring categories) -
+  real gap, not yet fixed. Needs backend ingestion work since goalie stats (wins, saves, save%,
+  GAA, shutouts) are structurally different from skater stats. Tracked for Phase 1.
+- **SEO infrastructure** - no sitemap.xml, no robots.txt, shared page titles/meta descriptions
+  across routes, and the app is fully client-rendered which limits basic crawler visibility.
+  Steven flagged this as a priority; tracked for Phase 4 but being pulled forward.
+
 ### Status by feature (from Steven's Aug 2026 spec)
 
 1. **Live Draft Assistant** - partial. Draft Board tracks drafted/mine/other, filters, search,
@@ -118,12 +152,14 @@ context resets between sessions.**
    score, not the full best-pick/biggest-reach/category-grade report.
 6. **Shareable draft card** - not started.
 7. **Player Battles / Who Should I Draft** - partial. Compare.jsx does ad hoc side-by-side stats
-   for up to 4 players; no SEO-indexable per-matchup pages, no Our Pick / For Your League verdict.
+   for up to 4 players (now sourced from the full player pool); no SEO-indexable per-matchup
+   pages, no Our Pick / For Your League verdict.
 8. **Will He Be There Next Round** - not started.
 9. **Sleeper/Breakout/Bust engine** - partial. Sleepers.jsx does breakouts + fallers off one
    score; missing component breakdown, busts, bouncebacks, rookies, lottery tickets.
-10. **Roster Intelligence** - partial. My Team shows position-count fill + overall grade; missing
-    per-category (goals/assists/PPP/hits/blocks/goaltending) bars tied to "why this pick helps".
+10. **Roster Intelligence** - partial. My Team shows position-count fill + overall grade +
+    (as of the Aug 2026 fix) a steady/no-data section; still missing per-category
+    (goals/assists/PPP/hits/blocks/goaltending) bars tied to "why this pick helps".
 11. **Draft tier alerts** - not started.
 12. **ADP value board** - not started (was blocked on the ADP question, now unblocked by the
     Site Rank decision above).
@@ -136,11 +172,12 @@ context resets between sessions.**
 ### Phase plan (Steven's own ordering)
 
 - [ ] **Phase 1**: league scoring customization, Draft IQ engine, Site Rank/ADP-proxy value
-      board, roster category intelligence, live draft board upgrades
+      board, roster category intelligence, live draft board upgrades, goalie support
 - [ ] **Phase 2**: mock draft simulator (bots), draft grading, shareable draft cards
 - [ ] **Phase 3**: SEO player-battle pages, sleeper/breakout/bust engine expansion, Will He Be
       There Next Round, tier alerts
-- [ ] **Phase 4**: retention (saved mocks/history/watchlist), SEO polish, ad placement tuning
+- [ ] **Phase 4**: retention (saved mocks/history/watchlist), SEO polish (sitemap/robots/meta -
+      being pulled forward, see Recent fixes above), ad placement tuning
 
 Check items off (or replace the checkbox line with a one-line "done, see commit X" note) as each
 phase lands, so this stays the single source of truth for where the expansion stands.
