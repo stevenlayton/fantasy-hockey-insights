@@ -11,8 +11,11 @@ import {
   Flame,
   ListChecks,
   UserCircle,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 
 const LINKS = [
   { to: '/', label: 'Trends', icon: TrendingUp, end: true },
@@ -30,12 +33,18 @@ const MORE_LINKS = [
 export default function NavBar() {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const moreRef = useRef(null);
+  const userRef = useRef(null);
+  const { user, authLoading, signIn, signOut } = useAuth();
 
   useEffect(() => {
     function handleClickOutside(e) {
       if (moreRef.current && !moreRef.current.contains(e.target)) {
         setMoreOpen(false);
+      }
+      if (userRef.current && !userRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -113,13 +122,67 @@ export default function NavBar() {
           </div>
         </nav>
 
-        <button
-          className="rounded-md p-2 text-slate-300 hover:bg-rink-800 md:hidden"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Toggle navigation"
-        >
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        <div className="flex items-center gap-2">
+          {!authLoading && (
+            user ? (
+              <div className="relative" ref={userRef}>
+                <button
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  title={user.displayName || user.email || 'Account'}
+                  className="flex items-center gap-2 rounded-md px-1.5 py-1.5 text-sm text-slate-300 hover:bg-rink-800"
+                >
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || 'Account'}
+                      referrerPolicy="no-referrer"
+                      className="h-7 w-7 rounded-full"
+                    />
+                  ) : (
+                    <UserCircle size={22} className="text-slate-400" />
+                  )}
+                  <span className="hidden max-w-[9rem] truncate sm:inline">
+                    {user.displayName?.split(' ')[0] || 'Account'}
+                  </span>
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-48 overflow-hidden rounded-md border border-rink-border bg-rink-900 py-1 shadow-xl">
+                    <div className="truncate border-b border-rink-border px-3 py-2 text-xs text-slate-500">
+                      Synced to this account
+                    </div>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        signOut();
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-300 hover:bg-rink-800 hover:text-slate-100"
+                    >
+                      <LogOut size={14} />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={signIn}
+                title="Sign in with Google to save your roster and settings across devices"
+                className="flex items-center gap-1.5 rounded-md bg-rink-800 px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-rink-700 hover:text-white"
+              >
+                <LogIn size={14} />
+                <span className="hidden sm:inline">Sign in</span>
+              </button>
+            )
+          )}
+
+          <button
+            className="rounded-md p-2 text-slate-300 hover:bg-rink-800 md:hidden"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Toggle navigation"
+          >
+            {open ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
 
       {open && (
