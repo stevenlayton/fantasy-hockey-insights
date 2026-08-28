@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 
 const SETTINGS_KEY = 'draftcrease:leagueSettings';
 
-const DEFAULT_TARGETS = { C: 2, L: 2, R: 2, D: 4 };
+const DEFAULT_TARGETS = { C: 2, L: 2, R: 2, D: 4, G: 2 };
 
 function readTargets() {
   if (typeof window === 'undefined') return DEFAULT_TARGETS;
