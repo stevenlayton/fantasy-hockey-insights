@@ -44,10 +44,16 @@ React frontend (onSnapshot listeners - no live API calls from the browser, ever)
 - `scheduledStatsIngestion` - every 5 hours. Walks all 32 team rosters (~700 skaters), pulls each
   player's recent game log, computes the trend score. See `functions/src/scoring.js` for the full
   formula write-up (recency-weighted trend vs. baseline, z-scored across the player pool, weighted
-  composite - weights are 4 constants at the top of that file, tune freely).
+  composite - weights are 4 constants at the top of that file, tune freely). Goalies get the same
+  treatment with their own signal set (save percentage, goals against, win rate) and weights -
+  see `GOALIE_SCORE_WEIGHTS` in the same file.
 - `scheduledNewsIngestion` - hourly. Pulls configured RSS feeds, dedupes by article URL.
-- `scheduledDraftGuideIngestion` - daily. Ranks players by position using last season's per-game
+- `scheduledDraftGuideIngestion` - daily. Ranks skaters by position using last season's per-game
   production projected to an 82-game season. Deliberately simple ("basic projections" per spec).
+  Goalies are ranked the same way but projected from wins, shutouts, and save percentage instead -
+  see `PROJECTED_GOALIE_GAMES` and `GOALIE_FANTASY_WEIGHTS` in `functions/src/ingestDraftGuide.js`
+  for the exact formula and tunable weights (wins and shutouts are worth flat points, save
+  percentage only counts once it clears a replacement-level baseline).
 - `scheduledScoreboardIngestion` - every 15 minutes. Pulls today's (or the next scheduled day's)
   NHL scoreboard for the "Around the League" widget. See `functions/src/ingestScoreboard.js`.
 - `runIngestionNow` - an HTTPS endpoint to trigger any of the above on demand
@@ -131,9 +137,16 @@ context resets between sessions.**
 - **Draft Board's "run a full solo mock draft" copy** - reworded to describe what actually exists
   today (manual pick tracking), since there's no bot-driven simulation engine yet (that's Phase 2,
   item 4 below).
-- **Goalies are entirely absent** (rankings, projections, roster slots, scoring categories) -
-  real gap, not yet fixed. Needs backend ingestion work since goalie stats (wins, saves, save%,
-  GAA, shutouts) are structurally different from skater stats. Tracked for Phase 1.
+- **Goalies were entirely absent** (rankings, projections, roster slots, scoring categories) -
+  fixed (Aug 2026). Ingestion now pulls goalie rosters and game logs alongside skaters
+  (`functions/src/ingestStats.js`, `functions/src/ingestDraftGuide.js`), scores them with a
+  goalie-specific trend model and a goalie-specific draft projection (both fully commented in
+  `functions/src/scoring.js` and `functions/src/ingestDraftGuide.js` - all weights are named
+  constants at the top of each file so they can be tuned without touching the logic). Goalies now
+  show up in Draft Guide (new Goalies tab), Draft Board, My Team, Compare, and the roster panel,
+  and count against a new `G` roster target (default 2) in league settings. Player Detail shows
+  goalie-appropriate charts (save %, goals against, ice time) and a goalie-shaped game log table
+  instead of the skater points/shots view.
 - **SEO infrastructure** - fixed (Aug 2026). Added `frontend/public/robots.txt` (allows all
   crawlers, points to the sitemap) and `frontend/public/sitemap.xml` (all static routes). Added
   `frontend/src/hooks/useDocumentMeta.js`, a lightweight per-route hook (title, meta description,
@@ -190,7 +203,8 @@ context resets between sessions.**
 ### Phase plan (Steven's own ordering)
 
 - [ ] **Phase 1**: league scoring customization, Draft IQ engine, Site Rank/ADP-proxy value
-      board, roster category intelligence, live draft board upgrades, goalie support
+      board, roster category intelligence, live draft board upgrades (goalie support shipped Aug
+      2026, see Recent fixes above)
 - [ ] **Phase 2**: mock draft simulator (bots), draft grading, shareable draft cards
 - [ ] **Phase 3**: SEO player-battle pages, sleeper/breakout/bust engine expansion, Will He Be
       There Next Round, tier alerts
