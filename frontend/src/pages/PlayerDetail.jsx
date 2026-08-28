@@ -77,8 +77,8 @@ export default function PlayerDetail() {
 
       <div className="mb-6 flex items-center gap-2 rounded-lg border border-dashed border-rink-border bg-rink-900/50 p-3 text-xs text-slate-500">
         <ShieldAlert size={14} />
-        Injury status: not available in this data source yet. NHL's public API doesn't reliably
-        expose injury designations - adding a source is on the roadmap (see README).
+        Injury status: not available yet. The NHL's public data doesn't reliably include injury
+        designations, so we're not able to show this here right now.
       </div>
 
       {gameLogs.length > 0 ? (
