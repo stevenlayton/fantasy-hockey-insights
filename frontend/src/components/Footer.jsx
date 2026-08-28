@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
-    <footer className="border-t border-rink-border py-8 text-sm text-slate-500">
+    <footer className="border-t border-rink-border py-8 text-sm text-slate-500 print:hidden">
       <div className="mx-auto max-w-7xl px-4">
         <p>
           DraftCrease is an independent fantasy hockey tool and is not affiliated with the NHL or
