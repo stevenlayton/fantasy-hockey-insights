@@ -3,10 +3,11 @@ import { doc, collection, query, orderBy, onSnapshot } from 'firebase/firestore'
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
+import { useMyRoster } from '../hooks/useMyRoster';
 import TrendChart from '../components/TrendChart';
 import TrendBadge from '../components/TrendBadge';
 import AdSlot from '../components/AdSlot';
-import { ArrowLeft, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, ShieldAlert, Plus, UserX, Undo2, ClipboardList } from 'lucide-react';
 
 function useDoc(path) {
   const [data, setData] = useState(null);
@@ -23,12 +24,15 @@ function useDoc(path) {
 
 export default function PlayerDetail() {
   const { id } = useParams();
+  const playerIdNum = Number(id);
   const { data: player, loading: playerLoading } = useDoc(['players', id]);
   const { data: scoreDoc, loading: scoreLoading } = useDoc(['scores', id]);
+  const { data: guideDoc } = useDoc(['draftGuide', id]);
   const { data: gameLogs, loading: logsLoading } = useFirestoreQuery(
     () => query(collection(db, 'players', id, 'gamelogs'), orderBy('gameDate', 'asc')),
     [id]
   );
+  const { myTeam, draftedElsewhere, addToMyTeam, markDraftedElsewhere, undraft } = useMyRoster();
 
   const loading = playerLoading || scoreLoading || logsLoading;
 
@@ -49,6 +53,10 @@ export default function PlayerDetail() {
       </div>
     );
   }
+
+  const isMine = myTeam.includes(playerIdNum);
+  const isOther = draftedElsewhere.includes(playerIdNum);
+  const isDrafted = isMine || isOther;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -73,7 +81,58 @@ export default function PlayerDetail() {
           </p>
         </div>
         {scoreDoc && <TrendBadge score={scoreDoc.score} />}
+        <div className="flex items-center gap-1.5">
+          {isMine && (
+            <span className="rounded bg-ice-500/20 px-2 py-1 text-[10px] font-semibold uppercase text-ice-400">
+              My team
+            </span>
+          )}
+          {isOther && (
+            <span className="rounded bg-rink-700 px-2 py-1 text-[10px] font-semibold uppercase text-slate-400">
+              Drafted
+            </span>
+          )}
+          {!isDrafted ? (
+            <>
+              <button
+                onClick={() => addToMyTeam(playerIdNum)}
+                title="Add to my team"
+                className="rounded-md bg-ice-500/10 p-2 text-ice-400 ring-1 ring-ice-500/30 hover:bg-ice-500/20"
+              >
+                <Plus size={16} />
+              </button>
+              <button
+                onClick={() => markDraftedElsewhere(playerIdNum)}
+                title="Mark drafted by someone else"
+                className="rounded-md bg-rink-700 p-2 text-slate-400 ring-1 ring-rink-600 hover:text-slate-200"
+              >
+                <UserX size={16} />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => undraft(playerIdNum)}
+              title="Undo"
+              className="flex items-center gap-1 rounded-md bg-rink-700 px-2 py-2 text-xs text-slate-400 ring-1 ring-rink-600 hover:text-slate-200"
+            >
+              <Undo2 size={14} /> Undo
+            </button>
+          )}
+        </div>
       </div>
+
+      {guideDoc && (
+        <div className="mb-6 flex flex-wrap items-center gap-2 rounded-lg border border-rink-border bg-rink-900 p-3 text-sm">
+          <ClipboardList size={16} className="text-gold" />
+          <span className="text-slate-400">
+            Preseason rank: <span className="font-semibold text-slate-200">#{guideDoc.positionRank} at {guideDoc.position}</span>
+          </span>
+          <span className="text-slate-600">·</span>
+          <span className="text-slate-400">
+            Projected pts: <span className="font-semibold text-gold">{guideDoc.projectedPoints}</span>
+          </span>
+        </div>
+      )}
 
       <div className="mb-6 flex items-center gap-2 rounded-lg border border-dashed border-rink-border bg-rink-900/50 p-3 text-xs text-slate-500">
         <ShieldAlert size={14} />
