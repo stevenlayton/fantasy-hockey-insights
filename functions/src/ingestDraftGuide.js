@@ -1,6 +1,6 @@
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { logger } = require('firebase-functions');
-const { TEAM_CODES, getTeamRoster, getPlayerGameLog, toiToMinutes, flattenRoster } = require('./nhlApi');
+const { TEAM_CODES, getTeamRoster, getPlayerGameLog, toiToMinutes, flattenRoster, getSkaterRealtimeStatsBulk, getSkaterFaceoffPercentagesBulk } = require('./nhlApi');
 
 const CONCURRENCY = 8;
 const REQUEST_STAGGER_MS = 50;
@@ -81,6 +81,18 @@ const rosters = await mapWithConcurrency(TEAM_CODES, CONCURRENCY, async (team) =
   const allSkaters = allTeamPlayers.filter((p) => p.positionCode !== 'G');
   const allGoalies = allTeamPlayers.filter((p) => p.positionCode === 'G');
 
+  // Bulk skater stats not exposed by the per-game endpoint at all: hits,
+  // blocked shots, and faceoff win% come from a different NHL host
+  // (api.nhle.com/stats/rest), fetched ONCE for the whole league here (two
+  // calls total, not per-player) then looked up per player below. See
+  // nhlApi.js's getSkaterRealtimeStatsBulk/getSkaterFaceoffPercentagesBulk.
+  const [realtimeBulk, faceoffBulk] = await Promise.all([
+    getSkaterRealtimeStatsBulk(priorSeason),
+    getSkaterFaceoffPercentagesBulk(priorSeason),
+    ]);
+  const realtimeByPlayerId = new Map((realtimeBulk.data || []).map((r) => [r.playerId, r]));
+  const faceoffByPlayerId = new Map((faceoffBulk.data || []).map((f) => [f.playerId, f]));
+
 const withSeasonTotals = await mapWithConcurrency(allSkaters, CONCURRENCY, async (player) => {
   const log = await getPlayerGameLog(player.id, priorSeason, 2);
   const games = log.gameLog || [];
@@ -98,6 +110,22 @@ const withSeasonTotals = await mapWithConcurrency(allSkaters, CONCURRENCY, async
   const pointsPerGame = totalPoints / gamesPlayed;
   const projectedPoints = Number((pointsPerGame * PROJECTED_SEASON_GAMES).toFixed(1));
 
+  // Hits/blocked shots aren't in the per-game log at all, so these come from
+  // the bulk realtimeByPlayerId lookup above (built from a season-aggregate
+  // endpoint, not per-game), projected the same way as PIM/plus-minus.
+  // Faceoff win% is already a rate stat (not a counting stat), so it is
+  // shown as-is with no projection; null for players who never take
+  // faceoffs (most wings/D), matching the source data.
+  const realtime = realtimeByPlayerId.get(player.id);
+  const faceoff = faceoffByPlayerId.get(player.id);
+  const projectedHits = realtime && realtime.gamesPlayed > 0
+  ? Number(((realtime.hits / realtime.gamesPlayed) * PROJECTED_SEASON_GAMES).toFixed(0))
+    : null;
+  const projectedBlockedShots = realtime && realtime.gamesPlayed > 0
+  ? Number(((realtime.blockedShots / realtime.gamesPlayed) * PROJECTED_SEASON_GAMES).toFixed(0))
+    : null;
+  const faceoffWinPct = faceoff && faceoff.faceoffWinPct != null ? Number(faceoff.faceoffWinPct.toFixed(3)) : null;
+
                                                   return {
                                                     player,
                                                     gamesPlayed,
@@ -109,6 +137,9 @@ const withSeasonTotals = await mapWithConcurrency(allSkaters, CONCURRENCY, async
                                                     shootingPctg: totalShots > 0 ? Number((totalGoals / totalShots).toFixed(3)) : 0,
                                                     projectedPim: Number(((totalPim / gamesPlayed) * PROJECTED_SEASON_GAMES).toFixed(0)),
                                                     projectedPlusMinus: Number(((totalPlusMinus / gamesPlayed) * PROJECTED_SEASON_GAMES).toFixed(0)),
+projectedHits,
+                                                    projectedBlockedShots,
+                                                    faceoffWinPct,
                                                     pointsPerGame: Number(pointsPerGame.toFixed(2)),
                                                     avgToi: Number(avgToi.toFixed(2)),
                                                     projectedPoints,
