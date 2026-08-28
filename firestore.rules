@@ -1,31 +1,41 @@
 rules_version = '2';
 
+// All data is written exclusively by the Cloud Functions scheduled jobs using
+// the Admin SDK, which bypasses these rules entirely. The frontend (and any
+// other client) only ever reads. Nothing is publicly writable.
 service cloud.firestore {
-match /databases/{database}/documents {
+  match /databases/{database}/documents {
 
-match /players/{playerId} {
-allow read: if true;
-allow write: if false;
+    match /players/{playerId} {
+      allow read: if true;
+      allow write: if false;
 
-match /gamelogs/{gameId} {
-allow read: if true;
-allow write: if false;
-}
-}
+      match /gamelogs/{gameId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
 
-match /scores/{playerId} {
-allow read: if true;
-allow write: if false;
-}
+    match /scores/{playerId} {
+      allow read: if true;
+      allow write: if false;
+    }
 
-match /news/{articleId} {
-allow read: if true;
-allow write: if false;
-}
+    match /draftGuide/{playerId} {
+      allow read: if true;
+      allow write: if false;
+    }
 
-match /meta/{docId} {
-allow read: if true;
-allow write: if false;
-}
-}
+    match /news/{articleId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /meta/{docId} {
+      // pipeline run metadata (last run timestamp, status) - readable so the
+      // frontend can show "data as of ..." freshness indicator
+      allow read: if true;
+      allow write: if false;
+    }
+  }
 }
