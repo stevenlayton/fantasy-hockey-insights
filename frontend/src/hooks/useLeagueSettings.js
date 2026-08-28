@@ -1,4 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from './useAuth';
 
 const SETTINGS_KEY = 'draftcrease:leagueSettings';
 
@@ -28,15 +31,63 @@ function writeTargets(targets) {
 
 /**
  * Lets a user customize their league's roster requirements (how many
- * centers, wingers, and defensemen a full roster needs) so My Team's
- * "filled vs needed" indicators match their actual league instead of a
- * hardcoded assumption. Saved to this browser only, same as the roster
- * itself - there are no accounts to sync settings across devices.
+ * centers, wingers, defensemen and goalies a full roster needs), instead
+ * of a hardcoded assumption.
+ *
+ * Signed OUT (no Google account): saved to this browser's localStorage
+ * only, exactly as DraftCrease always worked before optional accounts
+ * existed.
+ *
+ * Signed IN (see hooks/useAuth.js): the same targets live in Firestore at
+ * users/{uid}.leagueSettings, kept in sync in real time via onSnapshot, so
+ * custom targets follow the person to any browser or device they sign
+ * into. The first time a given account signs in with no Firestore
+ * document yet, whatever is already in this browser's localStorage is
+ * pushed up once as a starting point rather than being silently
+ * discarded. This mirrors the exact same pattern used in useMyRoster.js -
+ * see that file for a more detailed explanation of the suppressWrite ref
+ * below, which just avoids writing back to Firestore the same data that
+ * was JUST received from Firestore.
  */
 export function useLeagueSettings() {
-  const [targets, setTargets] = useState(() => readTargets());
+  const { user } = useAuth();
+  const uid = user?.uid || null;
 
-  useEffect(() => writeTargets(targets), [targets]);
+  const [targets, setTargets] = useState(() => readTargets());
+  const suppressWrite = useRef(false);
+  const hasSeeded = useRef(false);
+
+  useEffect(() => {
+    if (uid) return;
+    writeTargets(targets);
+  }, [uid, targets]);
+
+  useEffect(() => {
+    hasSeeded.current = false;
+    if (!uid) return undefined;
+
+    const ref = doc(db, 'users', uid);
+    const unsub = onSnapshot(ref, (snap) => {
+      const leagueSettings = snap.exists() ? snap.data().leagueSettings : null;
+      if (leagueSettings) {
+        suppressWrite.current = true;
+        setTargets({ ...DEFAULT_TARGETS, ...leagueSettings });
+      } else if (!hasSeeded.current) {
+        hasSeeded.current = true;
+        setDoc(ref, { leagueSettings: readTargets() }, { merge: true });
+      }
+    });
+    return unsub;
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    if (suppressWrite.current) {
+      suppressWrite.current = false;
+      return;
+    }
+    setDoc(doc(db, 'users', uid), { leagueSettings: targets }, { merge: true });
+  }, [uid, targets]);
 
   const setTarget = useCallback((position, value) => {
     const clamped = Math.max(0, Math.min(12, Number(value) || 0));
