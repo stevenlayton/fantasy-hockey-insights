@@ -12,24 +12,53 @@ function formatStartTime(iso) {
   return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
+// gameDate comes back as a plain 'YYYY-MM-DD' string from the NHL API with
+// no time component. Parsing that directly with `new Date(str)` treats it
+// as UTC midnight, which rolls back to the previous day in any timezone
+// behind UTC - so this builds the Date from the parts instead to keep it
+// anchored to the intended calendar day in the viewer's local time.
+//
+// The NHL 'score/now' endpoint doesn't always mean literally today - in the
+// off-season or on off days it falls back to the next scheduled game day
+// (e.g. showing preseason openers weeks out). Without a clear label that
+// reads as 'games happening right now', which is misleading, so this
+// distinguishes 'Today' from a future 'Next games' date.
+function getDateLabel(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d) return '';
+  const gameDate = new Date(y, m - 1, d);
+  const today = new Date();
+  const isToday =
+    gameDate.getFullYear() === today.getFullYear() &&
+    gameDate.getMonth() === today.getMonth() &&
+    gameDate.getDate() === today.getDate();
+  const formatted = gameDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  return isToday ? `Today · ${formatted}` : `Next games · ${formatted}`;
+}
+
 export default function ScoreboardWidget() {
   const { data: games, loading } = useFirestoreQuery(
     () => query(collection(db, 'scoreboard'), orderBy('startTimeUTC', 'asc')),
     []
   );
+  const dateLabel = getDateLabel(games[0] && games[0].gameDate);
 
   return (
     <div className="rounded-lg border border-rink-border bg-rink-900">
-      <div className="flex items-center gap-2 border-b border-rink-border px-4 py-3">
-        <CalendarDays size={16} className="text-ice-500" />
-        <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-slate-300">
-          Around the League
-        </h3>
+      <div className="flex items-center justify-between border-b border-rink-border px-4 py-3">
+        <div className="flex items-center gap-2">
+          <CalendarDays size={16} className="text-ice-500" />
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-slate-300">
+            Around the League
+          </h3>
+        </div>
+        {dateLabel && <span className="text-xs text-slate-500">{dateLabel}</span>}
       </div>
       <div className="divide-y divide-rink-border">
         {loading && <p className="p-4 text-sm text-slate-500">Loading scores...</p>}
         {!loading && games.length === 0 && (
-          <p className="p-4 text-sm text-slate-500">No games scheduled today.</p>
+          <p className="p-4 text-sm text-slate-500">No games on the schedule right now.</p>
         )}
         {games.map((g) => {
           const isLive = LIVE_STATES.includes(g.gameState);
