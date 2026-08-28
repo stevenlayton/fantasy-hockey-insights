@@ -2,23 +2,16 @@ import { useEffect, useRef } from 'react';
 
 const ADSENSE_CLIENT_ID = import.meta.env.VITE_ADSENSE_CLIENT_ID;
 
-let adsenseScriptLoaded = false;
-function loadAdsenseScript(clientId) {
-  if (adsenseScriptLoaded || typeof document === 'undefined') return;
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`;
-  script.crossOrigin = 'anonymous';
-  document.head.appendChild(script);
-  adsenseScriptLoaded = true;
-}
-
 /**
  * Ad placement slot. Three variants matching the spec: header banner,
  * in-feed (between player cards), and sidebar (desktop only).
  *
- * Until VITE_ADSENSE_CLIENT_ID is set (i.e. before the AdSense account is
- * approved - see README roadmap), this renders a clearly-labeled dashed
+ * The AdSense loader script itself is loaded once, globally, from a <script>
+ * tag in index.html <head> (that's also the exact snippet Google's AdSense
+ * dashboard gives for site verification). This component just registers each
+ * <ins> slot with that already-loaded script.
+ *
+ * Until VITE_ADSENSE_CLIENT_ID is set, this renders a clearly-labeled dashed
  * placeholder in the correct size/position so the layout can be reviewed
  * before real ads are wired in. No fake ad content is ever shown.
  */
@@ -27,7 +20,6 @@ export default function AdSlot({ variant = 'in-feed', slotId }) {
 
   useEffect(() => {
     if (!ADSENSE_CLIENT_ID) return;
-    loadAdsenseScript(ADSENSE_CLIENT_ID);
     try {
       // eslint-disable-next-line no-undef
       (window.adsbygoogle = window.adsbygoogle || []).push({});
