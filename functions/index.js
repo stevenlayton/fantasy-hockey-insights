@@ -1,4 +1,5 @@
 const { initializeApp } = require('firebase-admin/app');
+// Deploy service account has Cloud Scheduler Admin (added Aug 2026) so schedule updates on scheduled functions now apply cleanly.
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onRequest } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
