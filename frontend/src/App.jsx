@@ -5,6 +5,10 @@ import TrendsDashboard from './pages/TrendsDashboard';
 import PickupDrop from './pages/PickupDrop';
 import DraftGuide from './pages/DraftGuide';
 import PlayerDetail from './pages/PlayerDetail';
+import DraftBoard from './pages/DraftBoard';
+import MyTeam from './pages/MyTeam';
+import Compare from './pages/Compare';
+import Sleepers from './pages/Sleepers';
 
 export default function App() {
   return (
@@ -16,6 +20,10 @@ export default function App() {
           <Route path="/pickup-drop" element={<PickupDrop />} />
           <Route path="/draft-guide" element={<DraftGuide />} />
           <Route path="/player/:id" element={<PlayerDetail />} />
+          <Route path="/draft-board" element={<DraftBoard />} />
+          <Route path="/my-team" element={<MyTeam />} />
+          <Route path="/compare" element={<Compare />} />
+          <Route path="/sleepers" element={<Sleepers />} />
         </Routes>
       </main>
       <Footer />
