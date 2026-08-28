@@ -243,14 +243,24 @@ export default function PlayerDetail() {
 }
 
 function ChartCard({ title, gameLogs, dataKey }) {
+  // Round computed ice-time-in-minutes to 1 decimal here (not just in the
+  // chart tooltip) so the underlying data point itself is clean; e.g. a
+  // "19:29" TOI string becomes 19.5, not 19.483333333333334.
   const withMinutes = gameLogs.map((g) => ({
     ...g,
-    toiMinutes: g.toi ? Number(g.toi.split(':')[0]) + Number(g.toi.split(':')[1]) / 60 : 0,
+    toiMinutes: g.toi
+      ? Number((Number(g.toi.split(':')[0]) + Number(g.toi.split(':')[1]) / 60).toFixed(1))
+      : 0,
   }));
+  // Save percentage is conventionally shown to 3 decimals in hockey (e.g.
+  // .923), matching how it is displayed elsewhere in the app (Draft Guide).
+  // Every other chart here is a per-game whole-number count, so it is left
+  // unrounded and TrendChart's own formatter leaves integers untouched.
+  const decimals = dataKey === 'savePctg' ? 3 : 1;
   return (
     <div className="rounded-lg border border-rink-border bg-rink-900 p-3">
       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</p>
-      <TrendChart gameLogs={withMinutes} dataKey={dataKey} label={title} />
+      <TrendChart gameLogs={withMinutes} dataKey={dataKey} label={title} decimals={decimals} />
     </div>
   );
 }
