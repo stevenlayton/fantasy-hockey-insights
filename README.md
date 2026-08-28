@@ -158,6 +158,33 @@ context resets between sessions.**
   or write anyone else's roster. This is still not a full account system - no email/password, no
   profile, just Google sign-in as a convenience for cross-device sync - and it is never required
   to use any part of the site.
+- **League scoring customization, Draft IQ, and Site Rank** - shipped (Aug 2026). Three
+  related additions, all deterministic and documented with named, tunable constants per the
+  pattern in `functions/src/scoring.js`:
+  - `functions/src/ingestDraftGuide.js` now computes and persists **Site Rank**, one overall
+    rank across every position by `projectedPoints`, used everywhere the app needs an
+    "expected draft slot" proxy (see Key decisions above - never shown as real ADP). Draft
+    Board is relabeled from the old unlabeled `overallRank` to Site Rank, with a client-side
+    fallback recompute for any player document from before this field existed.
+  - `frontend/src/lib/leagueScoring.js` lets a visitor plug in their own league's point value
+    per category (goals/assists/shots/PPP for skaters, wins/shutouts/save-pct-above-
+    replacement for goalies) and see a second, separate **Your League Rank** column next to
+    Site Rank on Draft Board. Defaults mirror the server's own `GOALIE_FANTASY_WEIGHTS`
+    exactly so an uncustomized league rank stays close to Site Rank. Settings live in
+    `frontend/src/hooks/useLeagueScoring.js`, synced to Firestore for signed-in users using
+    the same dual-mode pattern as `useMyRoster.js`, editable from a new League Scoring panel
+    on My Team.
+  - `frontend/src/lib/draftIQ.js` adds **Draft IQ**, a single 0-100 score per player combining
+    five sub-scores (Value, Team Fit, Scarcity, Upside, Risk) via `DRAFT_IQ_WEIGHTS`. Team Fit
+    and Scarcity depend on who is drafted and your roster targets, so the score changes live
+    as a mock draft progresses. `explainDraftIQ()` builds a short "why" string from the same
+    calculated components using string templates, never a live AI call, per the deterministic-
+    explanations decision above. Shown as a badge (`DraftIQBadge.jsx`) on Draft Board with the
+    explanation as a hover tooltip.
+  Note: League Rank is reconstructed client-side from already-rounded persisted per-game
+  aggregate fields (e.g. `savePctg` stored to 3 decimals), so a goalie's League Rank can
+  occasionally differ by one spot from what the server's higher-precision formula would give -
+  expected, not a bug, and not worth a second Firestore field just to close that gap.
 - **SEO infrastructure** - fixed (Aug 2026). Added `frontend/public/robots.txt` (allows all
   crawlers, points to the sitemap) and `frontend/public/sitemap.xml` (all static routes). Added
   `frontend/src/hooks/useDocumentMeta.js`, a lightweight per-route hook (title, meta description,
@@ -184,10 +211,13 @@ context resets between sessions.**
 1. **Live Draft Assistant** - partial. Draft Board tracks drafted/mine/other, filters, search,
    print. Missing: draft config (teams/position/snake/rounds/scoring), scarcity, tiers,
    STEAL/REACH tags, suggested next picks.
-2. **Draft IQ** - not started. Signature 0-100 score with Value/Team Fit/Scarcity/Upside/Risk
-   components and a "why" explanation.
-3. **League-specific rankings** - not started. `useLeagueSettings` currently only stores roster
-   position targets, not a category scoring system. No "Default Rank vs Your League Rank" yet.
+2. **Draft IQ** - shipped (Aug 2026). Signature 0-100 score with Value/Team Fit/Scarcity/
+   Upside/Risk components and a deterministic template-based "why" explanation. See
+   `lib/draftIQ.js` and Recent fixes above.
+3. **League-specific rankings** - shipped (Aug 2026). `useLeagueScoring` plus
+   `lib/leagueScoring.js` add a per-category point-value system; Draft Board shows a "Your
+   League Rank" column next to Site Rank once a visitor customizes weights on My Team. See
+   Recent fixes above.
 4. **Mock draft simulator** - not started. No bot opponents or difficulty modes.
 5. **Post-draft report card** - not started. My Team's A-F grade is a simple fill-ratio+trend
    score, not the full best-pick/biggest-reach/category-grade report.
@@ -203,9 +233,14 @@ context resets between sessions.**
     you can check roster room while looking at any player. Still missing per-category
     (goals/assists/PPP/hits/blocks/goaltending) bars tied to "why this pick helps".
 11. **Draft tier alerts** - not started.
-12. **ADP value board** - not started (was blocked on the ADP question, now unblocked by the
-    Site Rank decision above).
-13. **AI-style draft explanations** - not started (see deterministic-templates decision above).
+12. **ADP value board** - shipped (Aug 2026) as the **Site Rank** column on Draft Board (see
+    Recent fixes above and the No-real-ADP decision above) - our own projected-points-based
+    rank used everywhere the spec calls for an ADP-style "expected draft slot", always labeled
+    Site Rank rather than presented as real third-party ADP.
+13. **AI-style draft explanations** - the deterministic equivalent shipped as part of Draft IQ
+    (Aug 2026): `explainDraftIQ()` builds a "why" string from real calculated inputs via string
+    templates. A true per-request AI-generated explanation remains intentionally not started -
+    see the deterministic-templates decision above.
 14. **User retention** - partial. localStorage roster/settings persist; no saved mocks/grades/
     watchlist yet. Optional Google sign-in shipped (Aug 2026) for cross-device sync, see Recent fixes above.
 15. **Ad-supported design** - done. AdSlot wired header/in-feed/sidebar everywhere, kept out of
@@ -213,9 +248,9 @@ context resets between sessions.**
 
 ### Phase plan (Steven's own ordering)
 
-- [ ] **Phase 1**: league scoring customization, Draft IQ engine, Site Rank/ADP-proxy value
-      board, roster category intelligence, live draft board upgrades (goalie support shipped Aug
-      2026, see Recent fixes above)
+- [ ] **Phase 1**: league scoring customization, Draft IQ engine, and Site Rank/ADP-proxy value
+      board all shipped Aug 2026 (see Recent fixes above); still pending: roster category
+      intelligence, remaining live draft board upgrades (goalie support shipped Aug 2026 too)
 - [ ] **Phase 2**: mock draft simulator (bots), draft grading, shareable draft cards
 - [ ] **Phase 3**: SEO player-battle pages, sleeper/breakout/bust engine expansion, Will He Be
       There Next Round, tier alerts
