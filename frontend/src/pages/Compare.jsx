@@ -1,8 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
+import { usePlayerPool } from '../hooks/usePlayerPool';
 import AdSlot from '../components/AdSlot';
 import TrendBadge from '../components/TrendBadge';
 import { GitCompare, Search, X } from 'lucide-react';
@@ -14,27 +12,14 @@ export default function Compare() {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
 
-  const { data: scores, loading: scoresLoading } = useFirestoreQuery(
-    () => query(collection(db, 'scores'), orderBy('score', 'desc'), limit(600)),
-    []
-  );
-  const { data: guide, loading: guideLoading } = useFirestoreQuery(
-    () => query(collection(db, 'draftGuide'), orderBy('projectedPoints', 'desc'), limit(600)),
-    []
-  );
-
-  const guideById = useMemo(() => {
-    const map = new Map();
-    guide.forEach((p) => map.set(p.playerId, p));
-    return map;
-  }, [guide]);
+  const { pool, loading } = usePlayerPool();
 
   const selected = selectedIds
-    .map((id) => scores.find((p) => p.playerId === id))
+    .map((id) => pool.find((p) => p.playerId === id))
     .filter(Boolean);
 
   const searchResults = search
-    ? scores
+    ? pool
         .filter(
           (p) =>
             p.name.toLowerCase().includes(search.toLowerCase()) && !selectedIds.includes(p.playerId)
@@ -52,25 +37,23 @@ export default function Compare() {
     setSelectedIds((prev) => prev.filter((x) => x !== id));
   };
 
-  const loading = scoresLoading || guideLoading;
-
   const rows = [
     { label: 'Team / Pos', render: (p) => `${p.team} · ${POSITION_LABELS[p.position] || p.position}` },
-    { label: 'Trend Score', render: (p) => <TrendBadge score={p.score} size="sm" /> },
+    {
+      label: 'Trend Score',
+      render: (p) => (p.hasTrendData ? <TrendBadge score={p.score} size="sm" /> : <span className="text-slate-600">No data yet</span>),
+    },
     { label: 'PPG (Last 5)', render: (p) => p.display?.pointsPerGameLast5?.toFixed(2) ?? '-' },
     { label: 'PPG (Season)', render: (p) => p.display?.pointsPerGameSeason?.toFixed(2) ?? '-' },
     { label: 'TOI/G (Last 5)', render: (p) => p.display?.toiPerGameLast5?.toFixed(1) ?? '-' },
     { label: 'Shots/G (Last 5)', render: (p) => p.display?.shotsPerGameLast5?.toFixed(1) ?? '-' },
     {
       label: 'Preseason Rank',
-      render: (p) => {
-        const g = guideById.get(p.playerId);
-        return g ? `#${g.positionRank} at ${POSITION_LABELS[g.position] || g.position}` : 'N/A';
-      },
+      render: (p) => (p.positionRank ? `#${p.positionRank} at ${POSITION_LABELS[p.position] || p.position}` : 'N/A'),
     },
     {
       label: 'Projected Pts',
-      render: (p) => guideById.get(p.playerId)?.projectedPoints ?? 'N/A',
+      render: (p) => p.projectedPoints ?? 'N/A',
     },
   ];
 
@@ -122,7 +105,7 @@ export default function Compare() {
         <AdSlot variant="header" />
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Loading…</p>}
+      {loading && <p className="text-sm text-slate-500">Loading...</p>}
 
       {!loading && selected.length === 0 && (
         <div className="rounded-lg border border-dashed border-rink-border p-8 text-center text-sm text-slate-500">
