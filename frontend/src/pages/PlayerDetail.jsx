@@ -154,9 +154,19 @@ export default function PlayerDetail() {
 
           {gameLogs.length > 0 ? (
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <ChartCard title="Points" gameLogs={gameLogs} dataKey="points" />
-              <ChartCard title="Shots on Goal" gameLogs={gameLogs} dataKey="shots" />
-              <ChartCard title="Ice Time (min)" gameLogs={gameLogs} dataKey="toiMinutes" />
+              {player.position === 'G' ? (
+                <>
+                  <ChartCard title="Save %" gameLogs={gameLogs} dataKey="savePctg" />
+                  <ChartCard title="Goals Against" gameLogs={gameLogs} dataKey="goalsAgainst" />
+                  <ChartCard title="Ice Time (min)" gameLogs={gameLogs} dataKey="toiMinutes" />
+                </>
+              ) : (
+                <>
+                  <ChartCard title="Points" gameLogs={gameLogs} dataKey="points" />
+                  <ChartCard title="Shots on Goal" gameLogs={gameLogs} dataKey="shots" />
+                  <ChartCard title="Ice Time (min)" gameLogs={gameLogs} dataKey="toiMinutes" />
+                </>
+              )}
             </div>
           ) : (
             <p className="mb-6 text-sm text-slate-500">No recent game log data yet.</p>
@@ -169,28 +179,54 @@ export default function PlayerDetail() {
           <div className="overflow-hidden rounded-lg border border-rink-border">
             <table className="w-full text-sm">
               <thead className="bg-rink-800 text-left text-xs uppercase tracking-wider text-slate-400">
-                <tr>
-                  <th className="px-4 py-2">Date</th>
-                  <th className="px-4 py-2">Opp</th>
-                  <th className="px-4 py-2 text-right">G</th>
-                  <th className="px-4 py-2 text-right">A</th>
-                  <th className="px-4 py-2 text-right">P</th>
-                  <th className="px-4 py-2 text-right">SOG</th>
-                  <th className="px-4 py-2 text-right">TOI</th>
-                </tr>
+                {player.position === 'G' ? (
+                  <tr>
+                    <th className="px-4 py-2">Date</th>
+                    <th className="px-4 py-2">Opp</th>
+                    <th className="px-4 py-2 text-right">Dec</th>
+                    <th className="px-4 py-2 text-right">GA</th>
+                    <th className="px-4 py-2 text-right">SA</th>
+                    <th className="px-4 py-2 text-right">SV%</th>
+                    <th className="px-4 py-2 text-right">TOI</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th className="px-4 py-2">Date</th>
+                    <th className="px-4 py-2">Opp</th>
+                    <th className="px-4 py-2 text-right">G</th>
+                    <th className="px-4 py-2 text-right">A</th>
+                    <th className="px-4 py-2 text-right">P</th>
+                    <th className="px-4 py-2 text-right">SOG</th>
+                    <th className="px-4 py-2 text-right">TOI</th>
+                  </tr>
+                )}
               </thead>
               <tbody className="divide-y divide-rink-border">
-                {[...gameLogs].reverse().map((g) => (
-                  <tr key={g.id} className="bg-rink-900">
-                    <td className="px-4 py-2 text-slate-400">{g.gameDate}</td>
-                    <td className="px-4 py-2 text-slate-400">{g.opponentAbbrev}</td>
-                    <td className="px-4 py-2 text-right">{g.goals}</td>
-                    <td className="px-4 py-2 text-right">{g.assists}</td>
-                    <td className="px-4 py-2 text-right font-semibold text-slate-200">{g.points}</td>
-                    <td className="px-4 py-2 text-right">{g.shots}</td>
-                    <td className="px-4 py-2 text-right">{g.toi}</td>
-                  </tr>
-                ))}
+                {player.position === 'G'
+                  ? [...gameLogs].reverse().map((g) => (
+                      <tr key={g.id} className="bg-rink-900">
+                        <td className="px-4 py-2 text-slate-400">{g.gameDate}</td>
+                        <td className="px-4 py-2 text-slate-400">{g.opponentAbbrev}</td>
+                        <td className="px-4 py-2 text-right">{g.decision || '-'}</td>
+                        <td className="px-4 py-2 text-right">{g.goalsAgainst}</td>
+                        <td className="px-4 py-2 text-right">{g.shotsAgainst}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-slate-200">
+                          {g.savePctg != null ? g.savePctg.toFixed(3) : '-'}
+                        </td>
+                        <td className="px-4 py-2 text-right">{g.toi}</td>
+                      </tr>
+                    ))
+                  : [...gameLogs].reverse().map((g) => (
+                      <tr key={g.id} className="bg-rink-900">
+                        <td className="px-4 py-2 text-slate-400">{g.gameDate}</td>
+                        <td className="px-4 py-2 text-slate-400">{g.opponentAbbrev}</td>
+                        <td className="px-4 py-2 text-right">{g.goals}</td>
+                        <td className="px-4 py-2 text-right">{g.assists}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-slate-200">{g.points}</td>
+                        <td className="px-4 py-2 text-right">{g.shots}</td>
+                        <td className="px-4 py-2 text-right">{g.toi}</td>
+                      </tr>
+                    ))}
               </tbody>
             </table>
           </div>
