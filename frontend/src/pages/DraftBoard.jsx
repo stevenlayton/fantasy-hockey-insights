@@ -7,11 +7,13 @@ import { useMyRoster } from '../hooks/useMyRoster';
 import AdSlot from '../components/AdSlot';
 import FreshnessBadge from '../components/FreshnessBadge';
 import { ListChecks, Plus, UserX, Undo2, RotateCcw, Printer } from 'lucide-react';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 const POSITIONS = ['ALL', 'C', 'L', 'R', 'D'];
 const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
 
 export default function DraftBoard() {
+  useDocumentMeta('Draft Board', 'Track your fantasy hockey draft picks live and see who is still available at every position.', '/draft-board');
   const [position, setPosition] = useState('ALL');
   const [search, setSearch] = useState('');
   const [hideDrafted, setHideDrafted] = useState(false);
