@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
+import { usePlayerPool } from '../hooks/usePlayerPool';
 import { useMyRoster } from '../hooks/useMyRoster';
 import { useLeagueSettings } from '../hooks/useLeagueSettings';
 import PlayerCard from '../components/PlayerCard';
@@ -41,10 +39,7 @@ function computeTeamGrade(myPlayers, positionCounts, targets) {
 export default function MyTeam() {
   const [search, setSearch] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { data: pool, loading } = useFirestoreQuery(
-    () => query(collection(db, 'scores'), orderBy('score', 'desc'), limit(600)),
-    []
-  );
+  const { pool, loading } = usePlayerPool();
   const { myTeam, draftedElsewhere, addToMyTeam, removeFromMyTeam } = useMyRoster();
   const { targets, setTarget, resetTargets } = useLeagueSettings();
 
@@ -53,8 +48,14 @@ export default function MyTeam() {
     [pool, myTeam]
   );
 
+  // Split by trend direction, but anyone without a meaningful trend yet
+  // (no scores doc, or a score too small to call up/down - very common
+  // in the off-season before current-season game logs exist) still needs
+  // a place to show up, otherwise they'd count toward the team grade and
+  // position counts while being invisible in the roster list below.
   const trendingUp = myPlayers.filter((p) => p.score > 0.05);
   const trendingDown = myPlayers.filter((p) => p.score < -0.05);
+  const steady = myPlayers.filter((p) => p.score <= 0.05 && p.score >= -0.05);
 
   const positionCounts = useMemo(() => {
     const counts = { C: 0, L: 0, R: 0, D: 0 };
@@ -195,7 +196,7 @@ export default function MyTeam() {
         </div>
       )}
 
-      {loading && <p className="text-sm text-slate-500">Loading…</p>}
+      {loading && <p className="text-sm text-slate-500">Loading...</p>}
 
       {!loading && myPlayers.length === 0 && (
         <div className="mb-8 rounded-lg border border-dashed border-rink-border p-6 text-center text-sm text-slate-500">
@@ -227,6 +228,22 @@ export default function MyTeam() {
               ))}
             </div>
           </section>
+          {steady.length > 0 && (
+            <section className="lg:col-span-2">
+              <h2 className="mb-3 font-display text-lg font-semibold uppercase tracking-wide text-slate-300">
+                Steady / No Trend Data Yet ({steady.length})
+              </h2>
+              <p className="mb-3 text-xs text-slate-500">
+                These players are on your team but don't have enough recent game data yet to show
+                a trend - common in the off-season or early in the year.
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {steady.map((s) => (
+                  <RosterRow key={s.playerId} scoreDoc={s} onRemove={() => removeFromMyTeam(s.playerId)} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
 
