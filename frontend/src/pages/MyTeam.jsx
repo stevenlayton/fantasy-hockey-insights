@@ -5,6 +5,7 @@ import { useLeagueSettings } from '../hooks/useLeagueSettings';
 import PlayerCard from '../components/PlayerCard';
 import AdSlot from '../components/AdSlot';
 import { UserCircle, Search, X, Settings, RotateCcw, Gauge } from 'lucide-react';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 const POSITIONS = ['C', 'L', 'R', 'D'];
 const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
@@ -37,6 +38,7 @@ function computeTeamGrade(myPlayers, positionCounts, targets) {
 }
 
 export default function MyTeam() {
+  useDocumentMeta('My Team', 'Track your fantasy hockey roster trends, team grade, and waiver wire suggestions.', '/my-team');
   const [search, setSearch] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { pool, loading } = usePlayerPool();
