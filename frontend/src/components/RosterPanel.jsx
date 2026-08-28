@@ -4,8 +4,8 @@ import { useMyRoster } from '../hooks/useMyRoster';
 import { useLeagueSettings } from '../hooks/useLeagueSettings';
 import { Users, X } from 'lucide-react';
 
-const POSITIONS = ['C', 'L', 'R', 'D'];
-const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
+const POSITIONS = ['C', 'L', 'R', 'D', 'G'];
+const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D', G: 'G' };
 
 // Small panel showing the user's current roster so they can see what they
 // already have, and whether there's room at a position, without leaving
@@ -22,7 +22,7 @@ export default function RosterPanel({ excludePlayerId }) {
     .filter((p) => myTeam.includes(p.playerId))
     .sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position));
 
-  const positionCounts = { C: 0, L: 0, R: 0, D: 0 };
+  const positionCounts = { C: 0, L: 0, R: 0, D: 0, G: 0 };
   myPlayers.forEach((p) => {
     if (positionCounts[p.position] !== undefined) positionCounts[p.position] += 1;
   });
