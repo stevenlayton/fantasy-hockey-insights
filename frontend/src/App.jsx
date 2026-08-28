@@ -9,6 +9,7 @@ import DraftBoard from './pages/DraftBoard';
 import MyTeam from './pages/MyTeam';
 import Compare from './pages/Compare';
 import Sleepers from './pages/Sleepers';
+import Privacy from './pages/Privacy';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/my-team" element={<MyTeam />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/sleepers" element={<Sleepers />} />
+          <Route path="/privacy" element={<Privacy />} />
         </Routes>
       </main>
       <Footer />
