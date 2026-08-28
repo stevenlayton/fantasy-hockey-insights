@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
+import { usePlayerPool } from '../hooks/usePlayerPool';
 import { useMyRoster } from '../hooks/useMyRoster';
+import { useLeagueSettings } from '../hooks/useLeagueSettings';
+import { useLeagueScoring } from '../hooks/useLeagueScoring';
+import { rankByLeagueScoring } from '../lib/leagueScoring';
+import { computeDraftIQForPool, explainDraftIQ } from '../lib/draftIQ';
 import AdSlot from '../components/AdSlot';
 import FreshnessBadge from '../components/FreshnessBadge';
+import DraftIQBadge from '../components/DraftIQBadge';
 import { ListChecks, Plus, UserX, Undo2, RotateCcw, Printer } from 'lucide-react';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
@@ -18,17 +21,27 @@ export default function DraftBoard() {
   const [search, setSearch] = useState('');
   const [hideDrafted, setHideDrafted] = useState(false);
 
-  const { data: guide, loading } = useFirestoreQuery(
-    () => query(collection(db, 'draftGuide'), orderBy('projectedPoints', 'desc'), limit(600)),
-    []
-  );
+  const { pool, loading } = usePlayerPool();
   const { myTeam, draftedElsewhere, addToMyTeam, markDraftedElsewhere, undraft, resetDraft } =
     useMyRoster();
+  const { targets } = useLeagueSettings();
+  const { skaterWeights, goalieWeights, isCustomized } = useLeagueScoring();
 
-  const board = useMemo(
-    () => guide.map((p, i) => ({ ...p, overallRank: i + 1 })),
-    [guide]
-  );
+  // Site Rank: the site's own stand-in for real ADP (average draft
+  // position), since there is no free, ToS-safe ADP data source for
+  // fantasy hockey (see README.md "Key decisions"). Persisted server-side
+  // in functions/src/ingestDraftGuide.js so it is stable between visits;
+  // this falls back to a live recompute by projectedPoints only for the
+  // rare case a player document predates that field or has not been
+  // through a scheduled ingestion run yet, so the board never shows a
+  // blank rank.
+  const board = useMemo(() => {
+    const missingSiteRank = pool.some((p) => !p.siteRank);
+    if (!missingSiteRank) return pool;
+    const sorted = [...pool].sort((a, b) => b.projectedPoints - a.projectedPoints);
+    const rankById = new Map(sorted.map((p, i) => [p.playerId, i + 1]));
+    return pool.map((p) => (p.siteRank ? p : { ...p, siteRank: rankById.get(p.playerId) }));
+  }, [pool]);
 
   const myTeamPlayers = useMemo(
     () => board.filter((p) => myTeam.includes(p.playerId)),
@@ -43,6 +56,24 @@ export default function DraftBoard() {
     return counts;
   }, [myTeamPlayers]);
 
+  // Your League Rank: only computed (and only shown as a column) once the
+  // visitor has actually customized scoring on My Team - otherwise it
+  // would just duplicate Site Rank and add noise. See lib/leagueScoring.js
+  // for the formulas.
+  const leagueRanks = useMemo(
+    () => (isCustomized ? rankByLeagueScoring(board, skaterWeights, goalieWeights) : null),
+    [board, skaterWeights, goalieWeights, isCustomized]
+  );
+
+  // Draft IQ: recomputed on every render that changes who is drafted or
+  // what your roster needs, so it stays live as a mock draft progresses.
+  // See lib/draftIQ.js for the five sub-scores this combines.
+  const draftedIds = useMemo(() => [...myTeam, ...draftedElsewhere], [myTeam, draftedElsewhere]);
+  const draftIQ = useMemo(
+    () => computeDraftIQForPool(board, draftedIds, positionCounts, targets),
+    [board, draftedIds, positionCounts, targets]
+  );
+
   const filtered = board.filter((p) => {
     if (position !== 'ALL' && p.position !== position) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -50,6 +81,8 @@ export default function DraftBoard() {
     if (hideDrafted && isDrafted) return false;
     return true;
   });
+
+  const colCount = isCustomized ? 7 : 6;
 
   const handleReset = () => {
     if (window.confirm('Clear your entire draft board? This removes your team and all drafted-elsewhere marks from this browser.')) {
@@ -66,7 +99,8 @@ export default function DraftBoard() {
             <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Draft Board</h1>
           </div>
           <p className="mt-1 max-w-2xl text-sm text-slate-500 print:hidden">
-            One big board, ranked by projected points. Use it as a live cheat sheet during your
+            Ranked by Site Rank, our own model built from projected points (not real, third-party
+            ADP - see the tooltip on the column header). Use it as a live cheat sheet during your
             real draft, or to manually track picks as you run through a mock draft on your own.
             Your picks are saved in this browser only - there are no accounts, so nothing syncs
             across devices.
@@ -125,24 +159,28 @@ export default function DraftBoard() {
             <table className="w-full text-sm">
               <thead className="bg-rink-800 text-left text-xs uppercase tracking-wider text-slate-400 print:bg-transparent print:text-slate-700">
                 <tr>
-                  <th className="px-3 py-2">#</th>
+                  <th className="px-3 py-2" title="DraftCrease's own projected-points-based rank - not real, third-party ADP">Site Rank</th>
                   <th className="px-3 py-2">Player</th>
                   <th className="px-3 py-2">Pos</th>
                   <th className="px-3 py-2 text-right">Proj. Pts</th>
+                  <th className="px-3 py-2 text-right" title="A deterministic 0-100 signal combining value, team fit, scarcity, upside and risk - see My Team for the formula">Draft IQ</th>
+                  {isCustomized && (
+                    <th className="px-3 py-2 text-right" title="Ranked using your custom league scoring weights from My Team">Your League Rank</th>
+                  )}
                   <th className="px-3 py-2 text-right print:hidden">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-rink-border">
                 {loading && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan={colCount} className="px-4 py-6 text-center text-slate-500">
                       Loading...
                     </td>
                   </tr>
                 )}
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan={colCount} className="px-4 py-6 text-center text-slate-500">
                       No players match this filter.
                     </td>
                   </tr>
@@ -151,9 +189,11 @@ export default function DraftBoard() {
                   const isMine = myTeam.includes(p.playerId);
                   const isOther = draftedElsewhere.includes(p.playerId);
                   const isDrafted = isMine || isOther;
+                  const iq = draftIQ.get(p.playerId);
+                  const leagueRank = leagueRanks && leagueRanks.get(p.playerId);
                   return (
                     <tr key={p.playerId} className={isDrafted ? 'bg-rink-950/40 opacity-50 print:opacity-100' : 'bg-rink-900 hover:bg-rink-800 print:bg-transparent'}>
-                      <td className="px-3 py-2 font-semibold text-slate-500 print:text-slate-700">{p.overallRank}</td>
+                      <td className="px-3 py-2 font-semibold text-slate-500 print:text-slate-700">{p.siteRank}</td>
                       <td className="px-3 py-2">
                         <Link
                           to={`/player/${p.playerId}`}
@@ -167,6 +207,14 @@ export default function DraftBoard() {
                       </td>
                       <td className="px-3 py-2 text-slate-400 print:text-slate-700">{POSITION_LABELS[p.position] || p.position}</td>
                       <td className="px-3 py-2 text-right text-slate-300 print:text-slate-700">{p.projectedPoints}</td>
+                      <td className="px-3 py-2 text-right print:hidden">
+                        {iq && <DraftIQBadge score={iq.score} title={explainDraftIQ(p, iq.components)} size="sm" />}
+                      </td>
+                      {isCustomized && (
+                        <td className="px-3 py-2 text-right text-slate-300 print:hidden" title={leagueRank ? `${leagueRank.customPoints} custom pts` : ''}>
+                          {leagueRank ? leagueRank.leagueRank : '-'}
+                        </td>
+                      )}
                       <td className="px-3 py-2 text-right print:hidden">
                         {!isDrafted ? (
                           <div className="flex justify-end gap-1.5">
