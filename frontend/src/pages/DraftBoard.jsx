@@ -65,8 +65,9 @@ export default function DraftBoard() {
           </div>
           <p className="mt-1 max-w-2xl text-sm text-slate-500 print:hidden">
             One big board, ranked by projected points. Use it as a live cheat sheet during your
-            real draft, or run a full solo mock draft. Your picks are saved in this browser only -
-            there are no accounts, so nothing syncs across devices.
+            real draft, or to manually track picks as you run through a mock draft on your own.
+            Your picks are saved in this browser only - there are no accounts, so nothing syncs
+            across devices.
           </p>
         </div>
         <FreshnessBadge metaDocId="draftGuideIngestion" />
@@ -133,7 +134,7 @@ export default function DraftBoard() {
                 {loading && (
                   <tr>
                     <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
-                      Loading…
+                      Loading...
                     </td>
                   </tr>
                 )}
