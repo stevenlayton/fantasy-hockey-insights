@@ -147,6 +147,17 @@ context resets between sessions.**
   and count against a new `G` roster target (default 2) in league settings. Player Detail shows
   goalie-appropriate charts (save %, goals against, ice time) and a goalie-shaped game log table
   instead of the skater points/shots view.
+- **Optional Google sign-in** - shipped (Aug 2026). Signed-out visitors keep the exact same
+  localStorage-only experience DraftCrease always had - nothing changes for them. Someone who
+  clicks "Sign in" in the nav (`frontend/src/hooks/useAuth.js`, wraps Firebase Auth) additionally
+  gets their roster and league settings synced to Firestore at `users/{uid}`, so both follow them
+  to any other browser or device they sign into (see `useMyRoster.js` and
+  `useLeagueSettings.js`). The first time a given account signs in, whatever was already in that
+  browser's localStorage is pushed up once as a starting point instead of being discarded.
+  `firestore.rules` locks each user's document to `request.auth.uid == uid`, so nobody can read
+  or write anyone else's roster. This is still not a full account system - no email/password, no
+  profile, just Google sign-in as a convenience for cross-device sync - and it is never required
+  to use any part of the site.
 - **SEO infrastructure** - fixed (Aug 2026). Added `frontend/public/robots.txt` (allows all
   crawlers, points to the sitemap) and `frontend/public/sitemap.xml` (all static routes). Added
   `frontend/src/hooks/useDocumentMeta.js`, a lightweight per-route hook (title, meta description,
@@ -196,7 +207,7 @@ context resets between sessions.**
     Site Rank decision above).
 13. **AI-style draft explanations** - not started (see deterministic-templates decision above).
 14. **User retention** - partial. localStorage roster/settings persist; no saved mocks/grades/
-    watchlist yet. Optional Google sign-in in progress for cross-device sync.
+    watchlist yet. Optional Google sign-in shipped (Aug 2026) for cross-device sync, see Recent fixes above.
 15. **Ad-supported design** - done. AdSlot wired header/in-feed/sidebar everywhere, kept out of
     the live Draft Board decision path per spec.
 
