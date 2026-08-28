@@ -7,6 +7,7 @@ import AdSlot from '../components/AdSlot';
 import TrendBadge from '../components/TrendBadge';
 import FreshnessBadge from '../components/FreshnessBadge';
 import { Flame, Snowflake } from 'lucide-react';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
 
@@ -21,6 +22,7 @@ const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
  * Firestore - no extra ingestion job needed.
  */
 export default function Sleepers() {
+  useDocumentMeta('Sleepers and Breakouts', 'Discover NHL fantasy hockey sleepers and breakout candidates before your league catches on.', '/sleepers');
   const { data: guide, loading: guideLoading } = useFirestoreQuery(
     () => query(collection(db, 'draftGuide'), orderBy('projectedPoints', 'desc'), limit(600)),
     []
