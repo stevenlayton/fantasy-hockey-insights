@@ -6,7 +6,7 @@ import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
 import { useMyRoster } from '../hooks/useMyRoster';
 import AdSlot from '../components/AdSlot';
 import FreshnessBadge from '../components/FreshnessBadge';
-import { ListChecks, Plus, UserX, Undo2, RotateCcw } from 'lucide-react';
+import { ListChecks, Plus, UserX, Undo2, RotateCcw, Printer } from 'lucide-react';
 
 const POSITIONS = ['ALL', 'C', 'L', 'R', 'D'];
 const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
@@ -56,14 +56,14 @@ export default function DraftBoard() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto max-w-7xl px-4 py-6 print:max-w-none print:px-0">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3 print:mb-4">
         <div>
           <div className="flex items-center gap-2">
             <ListChecks size={20} className="text-gold" />
             <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Draft Board</h1>
           </div>
-          <p className="mt-1 max-w-2xl text-sm text-slate-500">
+          <p className="mt-1 max-w-2xl text-sm text-slate-500 print:hidden">
             One big board, ranked by projected points. Use it as a live cheat sheet during your
             real draft, or run a full solo mock draft. Your picks are saved in this browser only -
             there are no accounts, so nothing syncs across devices.
@@ -72,13 +72,13 @@ export default function DraftBoard() {
         <FreshnessBadge metaDocId="draftGuideIngestion" />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 print:hidden">
         <AdSlot variant="header" />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px] print:block">
         <section>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
             {POSITIONS.map((pos) => (
               <button
                 key={pos}
@@ -108,17 +108,25 @@ export default function DraftBoard() {
               />
               Hide drafted
             </label>
+            <button
+              onClick={() => window.print()}
+              title="Print a paper cheat sheet of the current filtered list"
+              className="flex items-center gap-1.5 rounded-md bg-rink-800 px-3 py-1.5 text-sm font-semibold text-slate-400 hover:text-slate-100"
+            >
+              <Printer size={14} />
+              Print
+            </button>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-rink-border">
+          <div className="overflow-hidden rounded-lg border border-rink-border print:rounded-none print:border-0">
             <table className="w-full text-sm">
-              <thead className="bg-rink-800 text-left text-xs uppercase tracking-wider text-slate-400">
+              <thead className="bg-rink-800 text-left text-xs uppercase tracking-wider text-slate-400 print:bg-transparent print:text-slate-700">
                 <tr>
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Player</th>
                   <th className="px-3 py-2">Pos</th>
                   <th className="px-3 py-2 text-right">Proj. Pts</th>
-                  <th className="px-3 py-2 text-right">Actions</th>
+                  <th className="px-3 py-2 text-right print:hidden">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-rink-border">
@@ -141,22 +149,22 @@ export default function DraftBoard() {
                   const isOther = draftedElsewhere.includes(p.playerId);
                   const isDrafted = isMine || isOther;
                   return (
-                    <tr key={p.playerId} className={isDrafted ? 'bg-rink-950/40 opacity-50' : 'bg-rink-900 hover:bg-rink-800'}>
-                      <td className="px-3 py-2 font-semibold text-slate-500">{p.overallRank}</td>
+                    <tr key={p.playerId} className={isDrafted ? 'bg-rink-950/40 opacity-50 print:opacity-100' : 'bg-rink-900 hover:bg-rink-800 print:bg-transparent'}>
+                      <td className="px-3 py-2 font-semibold text-slate-500 print:text-slate-700">{p.overallRank}</td>
                       <td className="px-3 py-2">
                         <Link
                           to={`/player/${p.playerId}`}
-                          className={`font-medium hover:text-ice-400 ${isDrafted ? 'text-slate-500 line-through' : 'text-slate-100'}`}
+                          className={`font-medium hover:text-ice-400 print:text-slate-900 ${isDrafted ? 'text-slate-500 line-through' : 'text-slate-100'}`}
                         >
                           {p.name}
                         </Link>
-                        <span className="ml-1.5 text-xs text-slate-500">{p.team}</span>
-                        {isMine && <span className="ml-2 rounded bg-ice-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-ice-400">My team</span>}
-                        {isOther && <span className="ml-2 rounded bg-rink-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-400">Drafted</span>}
+                        <span className="ml-1.5 text-xs text-slate-500 print:text-slate-600">{p.team}</span>
+                        {isMine && <span className="ml-2 rounded bg-ice-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-ice-400 print:hidden">My team</span>}
+                        {isOther && <span className="ml-2 rounded bg-rink-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-400 print:hidden">Drafted</span>}
                       </td>
-                      <td className="px-3 py-2 text-slate-400">{POSITION_LABELS[p.position] || p.position}</td>
-                      <td className="px-3 py-2 text-right text-slate-300">{p.projectedPoints}</td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="px-3 py-2 text-slate-400 print:text-slate-700">{POSITION_LABELS[p.position] || p.position}</td>
+                      <td className="px-3 py-2 text-right text-slate-300 print:text-slate-700">{p.projectedPoints}</td>
+                      <td className="px-3 py-2 text-right print:hidden">
                         {!isDrafted ? (
                           <div className="flex justify-end gap-1.5">
                             <button
@@ -192,7 +200,7 @@ export default function DraftBoard() {
           </div>
         </section>
 
-        <aside className="space-y-4">
+        <aside className="space-y-4 print:hidden">
           <div className="rounded-lg border border-rink-border bg-rink-900 p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-slate-200">
