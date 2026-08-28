@@ -7,8 +7,8 @@ import AdSlot from '../components/AdSlot';
 import { UserCircle, Search, X, Settings, RotateCcw, Gauge } from 'lucide-react';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
-const POSITIONS = ['C', 'L', 'R', 'D'];
-const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
+const POSITIONS = ['C', 'L', 'R', 'D', 'G'];
+const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D', G: 'G' };
 
 const GRADE_BANDS = [
   { min: 90, grade: 'A', className: 'bg-up/10 text-up ring-1 ring-up/30' },
@@ -60,7 +60,7 @@ export default function MyTeam() {
   const steady = myPlayers.filter((p) => p.score <= 0.05 && p.score >= -0.05);
 
   const positionCounts = useMemo(() => {
-    const counts = { C: 0, L: 0, R: 0, D: 0 };
+    const counts = { C: 0, L: 0, R: 0, D: 0, G: 0 };
     myPlayers.forEach((p) => {
       if (counts[p.position] !== undefined) counts[p.position] += 1;
     });
