@@ -6,10 +6,12 @@ import PlayerCard from '../components/PlayerCard';
 import AdSlot from '../components/AdSlot';
 import FreshnessBadge from '../components/FreshnessBadge';
 import { ArrowLeftRight } from 'lucide-react';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 const POSITIONS = ['ALL', 'C', 'L', 'R', 'D'];
 
 export default function PickupDrop() {
+  useDocumentMeta('Pickup / Drop', 'Find the best NHL fantasy hockey pickup and drop candidates based on real trend data.', '/pickup-drop');
   const [position, setPosition] = useState('ALL');
 
   // Pull a generous pool client-side (position filtering + the
