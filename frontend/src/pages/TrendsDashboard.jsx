@@ -3,6 +3,7 @@ import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
 import PlayerCard from '../components/PlayerCard';
 import NewsFeed from '../components/NewsFeed';
+import ScoreboardWidget from '../components/ScoreboardWidget';
 import AdSlot from '../components/AdSlot';
 import FreshnessBadge from '../components/FreshnessBadge';
 import { TrendingUp, TrendingDown } from 'lucide-react';
@@ -46,7 +47,7 @@ export default function TrendsDashboard() {
             </h2>
           </div>
           <div className="space-y-2">
-            {risersLoading && <p className="text-sm text-slate-500">Loading…</p>}
+            {risersLoading && <p className="text-sm text-slate-500">Loading...</p>}
             {!risersLoading && risers.length === 0 && <EmptyState />}
             {risers.map((s, i) => (
               <div key={s.id}>
@@ -69,7 +70,7 @@ export default function TrendsDashboard() {
             </h2>
           </div>
           <div className="space-y-2">
-            {fallersLoading && <p className="text-sm text-slate-500">Loading…</p>}
+            {fallersLoading && <p className="text-sm text-slate-500">Loading...</p>}
             {!fallersLoading && fallers.length === 0 && <EmptyState />}
             {fallers.map((s, i) => (
               <div key={s.id}>
@@ -85,6 +86,7 @@ export default function TrendsDashboard() {
         </section>
 
         <aside className="space-y-4">
+          <ScoreboardWidget />
           <NewsFeed articles={news} loading={newsLoading} />
           <AdSlot variant="sidebar" />
         </aside>
