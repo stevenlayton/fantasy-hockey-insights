@@ -36,6 +36,13 @@ export function usePlayerPool() {
     return guide.map((g) => {
       const s = scoreById.get(g.playerId);
       return {
+        // Spread every raw field ingestDraftGuide.js wrote for this
+        // player (gamesPlayed, totalGoals/Assists/Shots/Ppp, wins,
+        // shutouts, savePctg, siteRank, etc.) so any page - not just this
+        // one - can compute custom scoring or Draft IQ without a second
+        // query. The explicit fields below override/normalize a few of
+        // them for backward compatibility with pages built before this.
+        ...g,
         playerId: g.playerId,
         name: g.name,
         team: g.team,
