@@ -1,8 +1,13 @@
 rules_version = '2';
 
-// All data is written exclusively by the Cloud Functions scheduled jobs using
-// the Admin SDK, which bypasses these rules entirely. The frontend (and any
-// other client) only ever reads. Nothing is publicly writable.
+// Most data (players, scores, draftGuide, news, scoreboard, meta) is
+// written exclusively by the Cloud Functions scheduled jobs using the
+// Admin SDK, which bypasses these rules entirely - the frontend only
+// ever reads it. The one exception is users/{uid}: if someone opts into
+// Google sign-in (see frontend hooks/useAuth.js), the frontend writes
+// their own roster and league settings directly to their own document
+// there. That is the only client-side write path in the whole app, and
+// it is locked to exactly one document per signed-in user below.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -41,6 +46,16 @@ service cloud.firestore {
       // frontend can show "data as of ..." freshness indicator
       allow read: if true;
       allow write: if false;
+    }
+
+    match /users/{uid} {
+      // A signed-in user may read and write only their own document (their
+      // saved fantasy roster and league settings, synced from
+      // useMyRoster.js / useLeagueSettings.js). Nobody can read or write
+      // anyone else's document, and anyone who is not signed in cannot
+      // read or write here at all - they stay on localStorage only, and
+      // never touch this collection.
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
