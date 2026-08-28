@@ -171,6 +171,30 @@ export default function PlayerDetail() {
                   </span>
                 </>
               )}
+              {guideDoc.projectedHits != null && (
+                <>
+                  <span className="text-slate-600">·</span>
+                  <span className="text-slate-400">
+                    Proj. Hits: <span className="font-semibold text-slate-200">{guideDoc.projectedHits}</span>
+                  </span>
+                </>
+              )}
+              {guideDoc.projectedBlockedShots != null && (
+                <>
+                  <span className="text-slate-600">·</span>
+                  <span className="text-slate-400">
+                    Proj. Blocks: <span className="font-semibold text-slate-200">{guideDoc.projectedBlockedShots}</span>
+                  </span>
+                </>
+              )}
+              {guideDoc.faceoffWinPct != null && (
+                <>
+                  <span className="text-slate-600">·</span>
+                  <span className="text-slate-400">
+                    FO%: <span className="font-semibold text-slate-200">{(guideDoc.faceoffWinPct * 100).toFixed(1)}%</span>
+                  </span>
+                </>
+              )}
             </div>
           )}
 
