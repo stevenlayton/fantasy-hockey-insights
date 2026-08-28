@@ -6,6 +6,7 @@ import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
 import AdSlot from '../components/AdSlot';
 import FreshnessBadge from '../components/FreshnessBadge';
 import { ClipboardList, Printer } from 'lucide-react';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 const POSITION_TABS = [
   { code: 'C', label: 'Centers' },
@@ -15,6 +16,7 @@ const POSITION_TABS = [
 ];
 
 export default function DraftGuide() {
+  useDocumentMeta('Draft Guide', 'Positional rankings and projections to help you dominate your NHL fantasy hockey draft.', '/draft-guide');
   const [position, setPosition] = useState('C');
 
   const { data: rankings, loading } = useFirestoreQuery(
