@@ -6,10 +6,37 @@ import { useMyRoster } from '../hooks/useMyRoster';
 import { useLeagueSettings } from '../hooks/useLeagueSettings';
 import PlayerCard from '../components/PlayerCard';
 import AdSlot from '../components/AdSlot';
-import { UserCircle, Search, X, Settings, RotateCcw } from 'lucide-react';
+import { UserCircle, Search, X, Settings, RotateCcw, Gauge } from 'lucide-react';
 
 const POSITIONS = ['C', 'L', 'R', 'D'];
 const POSITION_LABELS = { C: 'C', L: 'LW', R: 'RW', D: 'D' };
+
+const GRADE_BANDS = [
+  { min: 90, grade: 'A', className: 'bg-up/10 text-up ring-1 ring-up/30' },
+  { min: 80, grade: 'B', className: 'bg-ice-500/10 text-ice-400 ring-1 ring-ice-500/30' },
+  { min: 70, grade: 'C', className: 'bg-gold/10 text-gold ring-1 ring-gold/30' },
+  { min: 60, grade: 'D', className: 'bg-down/10 text-down ring-1 ring-down/30' },
+  { min: 0, grade: 'F', className: 'bg-down/20 text-down ring-1 ring-down/40' },
+];
+
+function computeTeamGrade(myPlayers, positionCounts, targets) {
+  const totalTargets = POSITIONS.reduce((sum, pos) => sum + targets[pos], 0);
+  if (totalTargets === 0 || myPlayers.length === 0) return null;
+
+  const totalFilled = POSITIONS.reduce(
+    (sum, pos) => sum + Math.min(positionCounts[pos], targets[pos]),
+    0
+  );
+  const fillRatio = totalFilled / totalTargets;
+
+  const avgTrend =
+    myPlayers.reduce((sum, p) => sum + (p.score || 0), 0) / myPlayers.length;
+  const trendComponent = Math.max(0, Math.min(1, (avgTrend + 0.5) / 1));
+
+  const score = Math.round(fillRatio * 70 + trendComponent * 30);
+  const band = GRADE_BANDS.find((b) => score >= b.min);
+  return { score, grade: band.grade, className: band.className };
+}
 
 export default function MyTeam() {
   const [search, setSearch] = useState('');
@@ -36,6 +63,11 @@ export default function MyTeam() {
     });
     return counts;
   }, [myPlayers]);
+
+  const teamGrade = useMemo(
+    () => computeTeamGrade(myPlayers, positionCounts, targets),
+    [myPlayers, positionCounts, targets]
+  );
 
   const suggestions = useMemo(() => {
     const unavailableIds = new Set([...myTeam, ...draftedElsewhere]);
@@ -66,6 +98,18 @@ export default function MyTeam() {
             saved in this browser only (same list used on the Draft Board).
           </p>
         </div>
+        {teamGrade && (
+          <div
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 ${teamGrade.className}`}
+            title="Based on how full your roster is against your league settings, and how your roster's trend scores are moving right now"
+          >
+            <Gauge size={18} />
+            <div className="leading-tight">
+              <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">Team Grade</p>
+              <p className="font-display text-xl font-bold">{teamGrade.grade}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mb-6 relative max-w-md">
