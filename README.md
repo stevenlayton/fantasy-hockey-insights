@@ -134,9 +134,26 @@ context resets between sessions.**
 - **Goalies are entirely absent** (rankings, projections, roster slots, scoring categories) -
   real gap, not yet fixed. Needs backend ingestion work since goalie stats (wins, saves, save%,
   GAA, shutouts) are structurally different from skater stats. Tracked for Phase 1.
-- **SEO infrastructure** - no sitemap.xml, no robots.txt, shared page titles/meta descriptions
-  across routes, and the app is fully client-rendered which limits basic crawler visibility.
-  Steven flagged this as a priority; tracked for Phase 4 but being pulled forward.
+- **SEO infrastructure** - fixed (Aug 2026). Added `frontend/public/robots.txt` (allows all
+  crawlers, points to the sitemap) and `frontend/public/sitemap.xml` (all static routes). Added
+  `frontend/src/hooks/useDocumentMeta.js`, a lightweight per-route hook (title, meta description,
+  canonical link tag) with no extra dependency - every page (Trends, Pickup/Drop, Draft Guide,
+  Draft Board, My Team, Compare, Sleepers, Privacy, and PlayerDetail with a dynamic per-player
+  title/description) now sets its own metadata instead of sharing one static title across the
+  whole site. Note: this fixes duplicate-title/meta and social-preview issues, but does not by
+  itself fix crawler visibility for bots that don't execute JavaScript, since the app is still a
+  client-rendered SPA - true crawlability would need server-side rendering or prerendering, which
+  is a bigger lift and not yet scheduled.
+- **Player Detail roster panel** - fixed (Aug 2026). Added `frontend/src/components/RosterPanel.jsx`,
+  a sticky right-hand panel on the player page showing your current roster (grouped by position,
+  with fill counts vs. your league settings) so you can see whether you have room before deciding
+  to add someone, without leaving the page. Reuses `usePlayerPool`/`useMyRoster`/`useLeagueSettings`,
+  so it always matches My Team and Draft Board exactly.
+- **Injury status** - investigated, not a bug. Checked the NHL public API's roster endpoint
+  (`/v1/roster/{team}/current`) and player landing endpoint (`/v1/player/{id}/landing`) directly;
+  neither exposes an injury/IR field. The existing placeholder text on Player Detail is accurate
+  as-is - a real fix would need a different data source entirely (paid sports-data API, or
+  scraping team injury reports), noted in the roadmap below.
 
 ### Status by feature (from Steven's Aug 2026 spec)
 
@@ -158,7 +175,8 @@ context resets between sessions.**
 9. **Sleeper/Breakout/Bust engine** - partial. Sleepers.jsx does breakouts + fallers off one
    score; missing component breakdown, busts, bouncebacks, rookies, lottery tickets.
 10. **Roster Intelligence** - partial. My Team shows position-count fill + overall grade +
-    (as of the Aug 2026 fix) a steady/no-data section; still missing per-category
+    a steady/no-data section; Player Detail now also shows a sticky roster panel (Aug 2026) so
+    you can check roster room while looking at any player. Still missing per-category
     (goals/assists/PPP/hits/blocks/goaltending) bars tied to "why this pick helps".
 11. **Draft tier alerts** - not started.
 12. **ADP value board** - not started (was blocked on the ADP question, now unblocked by the
@@ -176,8 +194,9 @@ context resets between sessions.**
 - [ ] **Phase 2**: mock draft simulator (bots), draft grading, shareable draft cards
 - [ ] **Phase 3**: SEO player-battle pages, sleeper/breakout/bust engine expansion, Will He Be
       There Next Round, tier alerts
-- [ ] **Phase 4**: retention (saved mocks/history/watchlist), SEO polish (sitemap/robots/meta -
-      being pulled forward, see Recent fixes above), ad placement tuning
+- [ ] **Phase 4**: retention (saved mocks/history/watchlist); SEO polish (sitemap.xml,
+      robots.txt, per-route meta tags - done, see Recent fixes above; true crawler visibility via
+      SSR/prerendering still open), ad placement tuning
 
 Check items off (or replace the checkbox line with a one-line "done, see commit X" note) as each
 phase lands, so this stays the single source of truth for where the expansion stands.
