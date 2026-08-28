@@ -7,8 +7,10 @@ import ScoreboardWidget from '../components/ScoreboardWidget';
 import AdSlot from '../components/AdSlot';
 import FreshnessBadge from '../components/FreshnessBadge';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 export default function TrendsDashboard() {
+  useDocumentMeta('Trends', 'Live NHL player trend scores, breakouts, and fantasy hockey insights updated daily.', '/');
   const { data: risers, loading: risersLoading } = useFirestoreQuery(
     () => query(collection(db, 'scores'), orderBy('score', 'desc'), limit(12)),
     []
