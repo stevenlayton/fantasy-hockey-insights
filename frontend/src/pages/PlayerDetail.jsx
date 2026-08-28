@@ -6,6 +6,7 @@ import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
 import { useMyRoster } from '../hooks/useMyRoster';
 import TrendChart from '../components/TrendChart';
 import TrendBadge from '../components/TrendBadge';
+import ConsistencyBadge from '../components/ConsistencyBadge';
 import AdSlot from '../components/AdSlot';
 import RosterPanel from '../components/RosterPanel';
 import { ArrowLeft, ShieldAlert, Plus, UserX, Undo2, ClipboardList } from 'lucide-react';
@@ -93,6 +94,9 @@ export default function PlayerDetail() {
               </p>
             </div>
             {scoreDoc && <TrendBadge score={scoreDoc.score} />}
+            {scoreDoc?.consistency && (
+              <ConsistencyBadge score={scoreDoc.consistency.score} label={scoreDoc.consistency.label} />
+            )}
             <div className="flex items-center gap-1.5">
               {isMine && (
                 <span className="rounded bg-ice-500/20 px-2 py-1 text-[10px] font-semibold uppercase text-ice-400">
@@ -143,6 +147,30 @@ export default function PlayerDetail() {
               <span className="text-slate-400">
                 Projected pts: <span className="font-semibold text-gold">{guideDoc.projectedPoints}</span>
               </span>
+              {guideDoc.shootingPctg != null && (
+                <>
+                  <span className="text-slate-600">·</span>
+                  <span className="text-slate-400">
+                    Shooting%: <span className="font-semibold text-slate-200">{(guideDoc.shootingPctg * 100).toFixed(1)}%</span>
+                  </span>
+                </>
+              )}
+              {guideDoc.projectedPim != null && (
+                <>
+                  <span className="text-slate-600">·</span>
+                  <span className="text-slate-400">
+                    Proj. PIM: <span className="font-semibold text-slate-200">{guideDoc.projectedPim}</span>
+                  </span>
+                </>
+              )}
+              {guideDoc.projectedPlusMinus != null && (
+                <>
+                  <span className="text-slate-600">·</span>
+                  <span className="text-slate-400">
+                    Proj. +/-: <span className="font-semibold text-slate-200">{guideDoc.projectedPlusMinus > 0 ? '+' : ''}{guideDoc.projectedPlusMinus}</span>
+                  </span>
+                </>
+              )}
             </div>
           )}
 
