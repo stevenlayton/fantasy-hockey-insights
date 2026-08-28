@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
  * `gameLogs` should be chronological ASCENDING (oldest -> newest) so the
  * line reads left-to-right like a normal timeline.
  */
-export default function TrendChart({ gameLogs, dataKey = 'points', label = 'Points' }) {
+export default function TrendChart({ gameLogs, dataKey = 'points', label = 'Points', decimals = 1 }) {
   const chartData = gameLogs.map((g) => ({
     date: g.gameDate?.slice(5) || '', // MM-DD
     [dataKey]: g[dataKey] ?? 0,
@@ -21,6 +21,9 @@ export default function TrendChart({ gameLogs, dataKey = 'points', label = 'Poin
           <Tooltip
             contentStyle={{ background: '#121826', border: '1px solid #1b2435', borderRadius: 8 }}
             labelStyle={{ color: '#94a3b8' }}
+            formatter={(value) =>
+              typeof value === 'number' && !Number.isInteger(value) ? value.toFixed(decimals) : value
+            }
           />
           <Line type="monotone" dataKey={dataKey} name={label} stroke="#22d3ee" strokeWidth={2} dot={{ r: 3 }} />
         </LineChart>
