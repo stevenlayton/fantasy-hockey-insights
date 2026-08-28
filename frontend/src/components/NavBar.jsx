@@ -1,6 +1,18 @@
 import { NavLink } from 'react-router-dom';
-import { Radar, TrendingUp, ArrowLeftRight, ClipboardList, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import {
+  Radar,
+  TrendingUp,
+  ArrowLeftRight,
+  ClipboardList,
+  Menu,
+  X,
+  ChevronDown,
+  GitCompare,
+  Flame,
+  ListChecks,
+  UserCircle,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 const LINKS = [
   { to: '/', label: 'Trends', icon: TrendingUp, end: true },
@@ -8,8 +20,27 @@ const LINKS = [
   { to: '/draft-guide', label: 'Draft Guide', icon: ClipboardList },
 ];
 
+const MORE_LINKS = [
+  { to: '/draft-board', label: 'Draft Board', icon: ListChecks },
+  { to: '/my-team', label: 'My Team', icon: UserCircle },
+  { to: '/compare', label: 'Compare Players', icon: GitCompare },
+  { to: '/sleepers', label: 'Sleepers & Breakouts', icon: Flame },
+];
+
 export default function NavBar() {
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (moreRef.current && !moreRef.current.contains(e.target)) {
+        setMoreOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-rink-border bg-rink-950/95 backdrop-blur">
@@ -49,6 +80,37 @@ export default function NavBar() {
               {label}
             </NavLink>
           ))}
+
+          <div className="relative" ref={moreRef}>
+            <button
+              onClick={() => setMoreOpen((v) => !v)}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                moreOpen ? 'bg-rink-800 text-ice-400' : 'text-slate-400 hover:bg-rink-800/60 hover:text-slate-100'
+              }`}
+            >
+              More
+              <ChevronDown size={14} className={moreOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+            </button>
+            {moreOpen && (
+              <div className="absolute right-0 top-full mt-1 w-56 overflow-hidden rounded-md border border-rink-border bg-rink-900 py-1 shadow-xl">
+                {MORE_LINKS.map(({ to, label, icon: Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    onClick={() => setMoreOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
+                        isActive ? 'bg-rink-800 text-ice-400' : 'text-slate-300 hover:bg-rink-800 hover:text-slate-100'
+                      }`
+                    }
+                  >
+                    <Icon size={16} />
+                    {label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         <button
@@ -62,7 +124,7 @@ export default function NavBar() {
 
       {open && (
         <nav className="flex flex-col gap-1 border-t border-rink-border px-4 py-3 md:hidden">
-          {LINKS.map(({ to, label, icon: Icon, end }) => (
+          {[...LINKS, ...MORE_LINKS].map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
