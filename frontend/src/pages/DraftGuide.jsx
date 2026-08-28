@@ -13,6 +13,7 @@ const POSITION_TABS = [
   { code: 'L', label: 'Left Wing' },
   { code: 'R', label: 'Right Wing' },
   { code: 'D', label: 'Defense' },
+  { code: 'G', label: 'Goalies' },
 ];
 
 export default function DraftGuide() {
@@ -85,7 +86,7 @@ export default function DraftGuide() {
               <th className="px-4 py-3">Rank</th>
               <th className="px-4 py-3">Player</th>
               <th className="px-4 py-3">Team</th>
-              <th className="px-4 py-3 text-right">Last Season PPG</th>
+              <th className="px-4 py-3 text-right">{position === 'G' ? 'Wins / Save %' : 'Last Season PPG'}</th>
               <th className="px-4 py-3 text-right">Projected Pts</th>
             </tr>
           </thead>
@@ -114,7 +115,11 @@ export default function DraftGuide() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-slate-500 print:text-slate-700">{p.team}</td>
-                  <td className="px-4 py-3 text-right text-slate-300 print:text-slate-700">{p.pointsPerGame?.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-slate-300 print:text-slate-700">
+                    {position === 'G'
+                      ? `${p.wins ?? '-'}W / ${p.savePctg != null ? p.savePctg.toFixed(3) : '-'}`
+                      : p.pointsPerGame?.toFixed(2)}
+                  </td>
                   <td className="px-4 py-3 text-right font-semibold text-gold print:text-slate-900">{p.projectedPoints}</td>
                 </tr>
                 {i === 9 && (
