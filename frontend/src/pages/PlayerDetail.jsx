@@ -9,6 +9,7 @@ import TrendBadge from '../components/TrendBadge';
 import AdSlot from '../components/AdSlot';
 import RosterPanel from '../components/RosterPanel';
 import { ArrowLeft, ShieldAlert, Plus, UserX, Undo2, ClipboardList } from 'lucide-react';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 function useDoc(path) {
   const [data, setData] = useState(null);
@@ -54,6 +55,12 @@ export default function PlayerDetail() {
       </div>
     );
   }
+
+    useDocumentMeta(
+    `${player.firstName} ${player.lastName}`,
+    `${player.firstName} ${player.lastName} (${player.team}) fantasy hockey stats, trend score, and projections.`,
+    `/player/${id}`
+  );
 
   const isMine = myTeam.includes(playerIdNum);
   const isOther = draftedElsewhere.includes(playerIdNum);
