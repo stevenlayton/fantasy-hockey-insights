@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { usePlayerPool } from '../hooks/usePlayerPool';
 import { useMyRoster } from '../hooks/useMyRoster';
 import { useLeagueSettings } from '../hooks/useLeagueSettings';
+import { useLeagueScoring } from '../hooks/useLeagueScoring';
 import PlayerCard from '../components/PlayerCard';
 import AdSlot from '../components/AdSlot';
 import { UserCircle, Search, X, Settings, RotateCcw, Gauge } from 'lucide-react';
@@ -16,6 +17,21 @@ const GRADE_BANDS = [
   { min: 70, grade: 'C', className: 'bg-gold/10 text-gold ring-1 ring-gold/30' },
   { min: 60, grade: 'D', className: 'bg-down/10 text-down ring-1 ring-down/30' },
   { min: 0, grade: 'F', className: 'bg-down/20 text-down ring-1 ring-down/40' },
+];
+
+// Category editors shown in the League Scoring settings panel below.
+// See lib/leagueScoring.js for what each weight actually multiplies.
+const SKATER_WEIGHT_FIELDS = [
+  { key: 'goals', label: 'Goals' },
+  { key: 'assists', label: 'Assists' },
+  { key: 'shots', label: 'Shots' },
+  { key: 'powerPlayPoints', label: 'PPP' },
+];
+const GOALIE_WEIGHT_FIELDS = [
+  { key: 'wins', label: 'Wins' },
+  { key: 'shutouts', label: 'Shutouts' },
+  { key: 'savePctgScale', label: 'Save pct scale' },
+  { key: 'replacementSavePctg', label: 'Replacement save pct' },
 ];
 
 function computeTeamGrade(myPlayers, positionCounts, targets) {
@@ -44,6 +60,7 @@ export default function MyTeam() {
   const { pool, loading } = usePlayerPool();
   const { myTeam, draftedElsewhere, addToMyTeam, removeFromMyTeam } = useMyRoster();
   const { targets, setTarget, resetTargets } = useLeagueSettings();
+  const { skaterWeights, goalieWeights, setSkaterWeight, setGoalieWeight, resetWeights } = useLeagueScoring();
 
   const myPlayers = useMemo(
     () => pool.filter((p) => myTeam.includes(p.playerId)),
@@ -193,8 +210,64 @@ export default function MyTeam() {
           </button>
           <p className="w-full text-xs text-slate-600">
             Match these to your real league's roster spots so the counts above tell you what to
-            target. Saved in this browser only.
+            target. Synced to your account if signed in, otherwise saved in this browser only.
           </p>
+        </div>
+      )}
+
+      {settingsOpen && (
+        <div className="mb-6 rounded-lg border border-rink-border bg-rink-900 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <Gauge size={14} /> League scoring
+            </h3>
+            <button
+              onClick={resetWeights}
+              className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300"
+            >
+              <RotateCcw size={12} /> Reset to default
+            </button>
+          </div>
+          <p className="mb-3 text-xs text-slate-600">
+            Plug in your real league's point values per category to see Your League Rank on the
+            Draft Board next to Site Rank. Skaters and goalies are scored separately - see
+            lib/leagueScoring.js for the exact formula. Synced to your account if signed in,
+            otherwise saved in this browser only.
+          </p>
+          <div className="mb-4">
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Skaters</div>
+            <div className="flex flex-wrap gap-3">
+              {SKATER_WEIGHT_FIELDS.map(({ key, label }) => (
+                <label key={key} className="flex flex-col gap-1 text-xs text-slate-500">
+                  {label}
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={skaterWeights[key]}
+                    onChange={(e) => setSkaterWeight(key, e.target.value)}
+                    className="w-20 rounded-md border border-rink-border bg-rink-950 px-2 py-1 text-sm text-slate-200 focus:border-ice-500 focus:outline-none"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Goalies</div>
+            <div className="flex flex-wrap gap-3">
+              {GOALIE_WEIGHT_FIELDS.map(({ key, label }) => (
+                <label key={key} className="flex flex-col gap-1 text-xs text-slate-500">
+                  {label}
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={goalieWeights[key]}
+                    onChange={(e) => setGoalieWeight(key, e.target.value)}
+                    className="w-20 rounded-md border border-rink-border bg-rink-950 px-2 py-1 text-sm text-slate-200 focus:border-ice-500 focus:outline-none"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
