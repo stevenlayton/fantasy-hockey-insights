@@ -194,11 +194,14 @@ commits.push(batch.commit());
         gameDate: game.gameDate,
         opponentAbbrev: game.opponentAbbrev,
         decision: game.decision || null,
-        goalsAgainst: game.goalsAgainst,
-        shotsAgainst: game.shotsAgainst,
-        savePctg: game.savePctg,
+        // NHL API omits these fields entirely for some very short relief
+        // appearances - Firestore rejects "undefined" outright (unlike
+        // null), so every goalie numeric field needs an explicit fallback.
+        goalsAgainst: game.goalsAgainst ?? null,
+        shotsAgainst: game.shotsAgainst ?? null,
+        savePctg: game.savePctg ?? null,
         shutout: Boolean(game.shutouts),
-        toi: game.toi,
+        toi: game.toi || null,
       });
       opsInBatch++;
       await commitIfNeeded();
