@@ -92,6 +92,8 @@ const withSeasonTotals = await mapWithConcurrency(allSkaters, CONCURRENCY, async
   const totalAssists = games.reduce((sum, g) => sum + (g.assists || 0), 0);
     const totalShots = games.reduce((sum, g) => sum + (g.shots || 0), 0);
     const totalPpp = games.reduce((sum, g) => sum + (g.powerPlayPoints || 0), 0);
+    const totalPim = games.reduce((sum, g) => sum + (g.pim || 0), 0);
+    const totalPlusMinus = games.reduce((sum, g) => sum + (g.plusMinus || 0), 0);
   const avgToi = games.reduce((sum, g) => sum + toiToMinutes(g.toi), 0) / gamesPlayed;
   const pointsPerGame = totalPoints / gamesPlayed;
   const projectedPoints = Number((pointsPerGame * PROJECTED_SEASON_GAMES).toFixed(1));
@@ -104,6 +106,9 @@ const withSeasonTotals = await mapWithConcurrency(allSkaters, CONCURRENCY, async
                                                     totalAssists,
                                                     totalShots,
                                                     totalPpp,
+                                                    shootingPctg: totalShots > 0 ? Number((totalGoals / totalShots).toFixed(3)) : 0,
+                                                    projectedPim: Number(((totalPim / gamesPlayed) * PROJECTED_SEASON_GAMES).toFixed(0)),
+                                                    projectedPlusMinus: Number(((totalPlusMinus / gamesPlayed) * PROJECTED_SEASON_GAMES).toFixed(0)),
                                                     pointsPerGame: Number(pointsPerGame.toFixed(2)),
                                                     avgToi: Number(avgToi.toFixed(2)),
                                                     projectedPoints,
