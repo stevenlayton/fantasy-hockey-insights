@@ -44,8 +44,9 @@ export default function PickupDrop() {
             </h1>
           </div>
           <p className="mt-1 text-sm text-slate-500">
-            Waiver-wire targets trending up, and rostered names cooling off. Ranked by our scoring
-            model, not real ownership % (see README for why).
+            Waiver-wire targets trending up, and rostered names cooling off. Rankings come from our
+            own trend-scoring model, based on recent performance, not real ownership percentages
+            from any fantasy platform.
           </p>
         </div>
         <FreshnessBadge metaDocId="statsIngestion" />
