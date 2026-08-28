@@ -90,6 +90,8 @@ const withSeasonTotals = await mapWithConcurrency(allSkaters, CONCURRENCY, async
   const totalPoints = games.reduce((sum, g) => sum + (g.points || 0), 0);
   const totalGoals = games.reduce((sum, g) => sum + (g.goals || 0), 0);
   const totalAssists = games.reduce((sum, g) => sum + (g.assists || 0), 0);
+    const totalShots = games.reduce((sum, g) => sum + (g.shots || 0), 0);
+    const totalPpp = games.reduce((sum, g) => sum + (g.powerPlayPoints || 0), 0);
   const avgToi = games.reduce((sum, g) => sum + toiToMinutes(g.toi), 0) / gamesPlayed;
   const pointsPerGame = totalPoints / gamesPlayed;
   const projectedPoints = Number((pointsPerGame * PROJECTED_SEASON_GAMES).toFixed(1));
@@ -100,6 +102,8 @@ const withSeasonTotals = await mapWithConcurrency(allSkaters, CONCURRENCY, async
                                                     totalPoints,
                                                     totalGoals,
                                                     totalAssists,
+                                                    totalShots,
+                                                    totalPpp,
                                                     pointsPerGame: Number(pointsPerGame.toFixed(2)),
                                                     avgToi: Number(avgToi.toFixed(2)),
                                                     projectedPoints,
@@ -155,6 +159,18 @@ const withSeasonTotals = await mapWithConcurrency(allSkaters, CONCURRENCY, async
   const validGoalies = withGoalieSeasonTotals.filter(Boolean);
 
   const valid = [...withSeasonTotals.filter(Boolean), ...validGoalies];
+
+  // Site Rank: one overall rank across every position (skaters AND
+  // goalies together), by projected points. There is no free, ToS-safe
+  // ADP (average draft position) data source for fantasy hockey, so this
+  // is used as the stand-in "expected draft slot" everywhere the app
+  // needs one - always labeled "Site Rank" in the UI, never as real ADP.
+  // See README.md "Key decisions: No real ADP data source."
+  [...valid]
+    .sort((a, b) => b.projectedPoints - a.projectedPoints)
+    .forEach((entry, i) => {
+      entry.siteRank = i + 1;
+    });
 
   // Rank within position.
 const byPosition = {};
