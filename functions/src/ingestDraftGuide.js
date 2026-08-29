@@ -23,6 +23,22 @@ const GOALIE_FANTASY_WEIGHTS = Object.freeze({
   replacementSavePctg: 0.89, // save% at or below this earns zero bonus points
 });
 
+// GOALIE_SAMPLE_SIZE_FOR_FULL_CREDIBILITY: games played needed before we fully
+// trust a goalie's own save%/win rate/shutout rate for projection purposes.
+// Below this, we blend the goalie's own rate with league-average rates so a
+// tiny hot (or cold) sample cannot dominate the projection. At gamesPlayed
+// >= this value, credibility is 1 and the goalie's own numbers are used as-is.
+const GOALIE_SAMPLE_SIZE_FOR_FULL_CREDIBILITY = 20;
+// LEAGUE_AVERAGE_GOALIE_RATES: rough NHL league-average goalie rates, used as
+// the "prior" that low-sample goalies get regressed toward before their rates
+// are extrapolated to a full season. Approximate and tunable, not pulled from
+// a live league-wide aggregate.
+const LEAGUE_AVERAGE_GOALIE_RATES = Object.freeze({
+  winRate: 0.5, // decisions won, per game played
+  shutoutRate: 0.05, // shutouts, per game played
+  savePctg: 0.905, // league-average save percentage
+});
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -160,16 +176,36 @@ projectedHits,
     const avgSavePctg = games.reduce((sum, g) => sum + (g.savePctg || 0), 0) / gamesPlayed;
     const avgGoalsAgainst = games.reduce((sum, g) => sum + (g.goalsAgainst || 0), 0) / gamesPlayed;
     const winRate = wins / gamesPlayed;
-    const projectedWins = Number((winRate * PROJECTED_GOALIE_GAMES).toFixed(1));
-    const projectedShutouts = Number(((shutouts / gamesPlayed) * PROJECTED_GOALIE_GAMES).toFixed(2));
+    const shutoutRate = shutouts / gamesPlayed;
 
-    // Fantasy points formula: wins and shutouts are worth flat point
-    // amounts (common goalie category weights), and save percentage only
-    // contributes once it clears a "replacement level" backup goalie
-    // baseline - this keeps two goalies with a similar win total but very
-    // different save percentages from scoring the same.
+    // Small-sample guard: a goalie with only a game or two played can post a
+    // wildly unrepresentative save% or win rate (e.g. a backup going 1-0 with
+    // a hot .966 save%). Before extrapolating to a full season, blend the
+    // goalie's own rates with LEAGUE_AVERAGE_GOALIE_RATES, weighted by how
+    // many games they've actually played (credibility). A goalie at or above
+    // GOALIE_SAMPLE_SIZE_FOR_FULL_CREDIBILITY games keeps their own numbers
+    // unchanged; a goalie with very few games gets pulled most of the way
+    // toward league average, so tiny hot streaks no longer outrank proven
+    // starters with a full body of work.
+    const credibility = Math.min(1, gamesPlayed / GOALIE_SAMPLE_SIZE_FOR_FULL_CREDIBILITY);
+    const blendedWinRate =
+      credibility * winRate + (1 - credibility) * LEAGUE_AVERAGE_GOALIE_RATES.winRate;
+    const blendedShutoutRate =
+      credibility * shutoutRate + (1 - credibility) * LEAGUE_AVERAGE_GOALIE_RATES.shutoutRate;
+    const blendedSavePctg =
+      credibility * avgSavePctg + (1 - credibility) * LEAGUE_AVERAGE_GOALIE_RATES.savePctg;
+
+    const projectedWins = Number((blendedWinRate * PROJECTED_GOALIE_GAMES).toFixed(1));
+    const projectedShutouts = Number((blendedShutoutRate * PROJECTED_GOALIE_GAMES).toFixed(2));
+
+    // Fantasy points formula: wins and shutouts are worth flat point amounts
+    // (common goalie category weights), and save percentage contributes a
+    // bonus above a replacement-level baseline so two goalies with a similar
+    // win total but very different save percentages don't score the same.
+    // Uses the credibility-blended save% above, not the raw sample save%, so
+    // a low-sample goalie's bonus is also pulled toward a realistic level.
     const savePctgBonus =
-      Math.max(0, avgSavePctg - GOALIE_FANTASY_WEIGHTS.replacementSavePctg) *
+      Math.max(0, blendedSavePctg - GOALIE_FANTASY_WEIGHTS.replacementSavePctg) *
       GOALIE_FANTASY_WEIGHTS.savePctgScale;
     const projectedPoints = Number(
       (
