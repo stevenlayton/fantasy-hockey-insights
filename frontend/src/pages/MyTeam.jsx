@@ -3,9 +3,10 @@ import { usePlayerPool } from '../hooks/usePlayerPool';
 import { useMyRoster } from '../hooks/useMyRoster';
 import { useLeagueSettings } from '../hooks/useLeagueSettings';
 import { useLeagueScoring } from '../hooks/useLeagueScoring';
+import { computeCategoryIntelligence } from '../lib/rosterCategories';
 import PlayerCard from '../components/PlayerCard';
 import AdSlot from '../components/AdSlot';
-import { UserCircle, Search, X, Settings, RotateCcw, Gauge } from 'lucide-react';
+import { UserCircle, Search, X, Settings, RotateCcw, Gauge, BarChart3 } from 'lucide-react';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 const POSITIONS = ['C', 'L', 'R', 'D', 'G'];
@@ -87,6 +88,11 @@ export default function MyTeam() {
   const teamGrade = useMemo(
     () => computeTeamGrade(myPlayers, positionCounts, targets),
     [myPlayers, positionCounts, targets]
+  );
+
+  const categoryBreakdown = useMemo(
+    () => computeCategoryIntelligence(pool, myPlayers, targets),
+    [pool, myPlayers, targets]
   );
 
   const suggestions = useMemo(() => {
@@ -271,7 +277,25 @@ export default function MyTeam() {
         </div>
       )}
 
-      {loading && <p className="text-sm text-slate-500">Loading...</p>}
+      {myPlayers.length > 0 && (
+<section className="mb-8">
+<h2 className="mb-1 flex items-center gap-1.5 font-display text-lg font-semibold uppercase tracking-wide text-slate-200">
+<BarChart3 size={18} className="text-ice-500" /> Category Breakdown
+</h2>
+<p className="mb-3 text-xs text-slate-500">
+How your roster's projected production compares to an average roster filled to your
+league's target slot counts, category by category. See lib/rosterCategories.js for the
+exact formula.
+</p>
+<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+{categoryBreakdown.map((cat) => (
+<CategoryBar key={cat.key} category={cat} />
+))}
+</div>
+</section>
+)}
+
+{loading && <p className="text-sm text-slate-500">Loading...</p>}
 
       {!loading && myPlayers.length === 0 && (
         <div className="mb-8 rounded-lg border border-dashed border-rink-border p-6 text-center text-sm text-slate-500">
@@ -345,6 +369,27 @@ export default function MyTeam() {
       )}
     </div>
   );
+}
+
+function CategoryBar({ category }) {
+const barColor =
+category.status === 'strong' ? 'bg-up' : category.status === 'weak' ? 'bg-down' : 'bg-ice-500';
+const textColor =
+category.status === 'strong' ? 'text-up' : category.status === 'weak' ? 'text-down' : 'text-ice-400';
+const pct = category.ratio != null ? Math.round(category.ratio * 100) : null;
+const barWidth = category.ratio != null ? Math.min(100, category.ratio * 100) : 0;
+return (
+<div className="rounded-lg border border-rink-border bg-rink-900 p-3">
+<div className="mb-1.5 flex items-center justify-between text-xs">
+<span className="font-semibold uppercase tracking-wide text-slate-400">{category.label}</span>
+<span className={`font-semibold ${textColor}`}>{pct != null ? `${pct}%` : 'N/A'}</span>
+</div>
+<div className="h-2 w-full overflow-hidden rounded-full bg-rink-800">
+<div className={`h-full ${barColor}`} style={{ width: `${barWidth}%` }} />
+</div>
+<p className="mt-1.5 text-xs text-slate-500">{category.why}</p>
+</div>
+);
 }
 
 function RosterRow({ scoreDoc, onRemove }) {
