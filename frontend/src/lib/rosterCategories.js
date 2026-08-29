@@ -106,7 +106,7 @@ function buildWhyText(label, status, ratio) {
     return `${pct}% of an average roster's ${label} total, a real strength you can lean on.`;
   }
   if (status === 'weak') {
-    return `${pct}% of an average roster's ${label} total, consider targeting a ${label} contributor on waivers or your next pick.`;
+    return `${pct}% of an average roster's ${label} total, consider targeting a waiver add or draft pick who contributes ${label}.`;
   }
   return `${pct}% of an average roster's ${label} total, right in line with a typical roster.`;
 }
