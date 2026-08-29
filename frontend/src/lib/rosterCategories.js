@@ -99,16 +99,16 @@ function buildCategoryResult(key, label, yourTotal, baselineTotal) {
 
 function buildWhyText(label, status, ratio) {
   if (ratio == null) {
-    return \`Set your league roster targets above to see how your \${label} production compares to an average roster.\`;
+    return `Set your league roster targets above to see how your ${label} production compares to an average roster.`;
   }
   const pct = Math.round(ratio * 100);
   if (status === 'strong') {
-    return \`\${pct}% of an average roster's \${label} total, a real strength you can lean on.\`;
+    return `${pct}% of an average roster's ${label} total, a real strength you can lean on.`;
   }
   if (status === 'weak') {
-    return \`\${pct}% of an average roster's \${label} total, consider targeting a \${label} contributor on waivers or your next pick.\`;
+    return `${pct}% of an average roster's ${label} total, consider targeting a ${label} contributor on waivers or your next pick.`;
   }
-  return \`\${pct}% of an average roster's \${label} total, right in line with a typical roster.\`;
+  return `${pct}% of an average roster's ${label} total, right in line with a typical roster.`;
 }
 
 // pool: full player pool from usePlayerPool (every drafted-or-not player).
