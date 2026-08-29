@@ -133,6 +133,10 @@ context resets between sessions.**
 
 ### Recent fixes (Aug 2026, from a ChatGPT review Steven ran against the live site)
 
+- **Roster category intelligence** - shipped. My Team's new Category Breakdown section
+  breaks a roster down into goals, assists, PPP, hits, blocks, and goaltending, each compared
+  to an average roster sized to the league's target slots (see lib/rosterCategories.js for
+  the exact formula and tunable strong/weak thresholds).
 - **My Team / Draft Board sync bug** - fixed. Root cause and the new shared-pool rule are
   documented above in "Frontend data layer: draftGuide vs scores". Both pages now use
   `usePlayerPool`; a new "Steady / No Trend Data Yet" section on My Team also shows roster
@@ -283,10 +287,12 @@ before recommending anything:
 8. **Will He Be There Next Round** - not started.
 9. **Sleeper/Breakout/Bust engine** - partial. Sleepers.jsx does breakouts + fallers off one
    score; missing component breakdown, busts, bouncebacks, rookies, lottery tickets.
-10. **Roster Intelligence** - partial. My Team shows position-count fill + overall grade +
-    a steady/no-data section; Player Detail now also shows a sticky roster panel (Aug 2026) so
-    you can check roster room while looking at any player. Still missing per-category
-    (goals/assists/PPP/hits/blocks/goaltending) bars tied to "why this pick helps".
+10. **Roster Intelligence** - shipped (Aug 2026). My Team shows position-count fill + overall
+    grade + a steady/no-data section, a Category Breakdown section (goals, assists, PPP, hits,
+    blocks, and goaltending bars comparing the roster's projected total to an average roster
+    sized to your league's target slots, with a short why-this-matters line per category - see
+    lib/rosterCategories.js for the exact formula), and Player Detail also shows a sticky roster
+    panel (Aug 2026) so you can check roster room while looking at any player.
 11. **Draft tier alerts** - not started.
 12. **ADP value board** - shipped (Aug 2026) as the **Site Rank** column on Draft Board (see
     Recent fixes above and the No-real-ADP decision above) - our own projected-points-based
@@ -303,9 +309,9 @@ before recommending anything:
 
 ### Phase plan (Steven's own ordering)
 
-- [ ] **Phase 1**: league scoring customization, Draft IQ engine, and Site Rank/ADP-proxy value
-      board all shipped Aug 2026 (see Recent fixes above); still pending: roster category
-      intelligence, remaining live draft board upgrades (goalie support shipped Aug 2026 too)
+- [x] **Phase 1**: league scoring customization, Draft IQ engine, Site Rank/ADP-proxy value
+      board, and roster category intelligence all shipped Aug 2026 (see Recent fixes above);
+      remaining live draft board upgrades still pending (goalie support shipped Aug 2026 too)
 - [ ] **Phase 2**: mock draft simulator (bots), draft grading, shareable draft cards
 - [ ] **Phase 3**: SEO player-battle pages, sleeper/breakout/bust engine expansion, Will He Be
       There Next Round, tier alerts
