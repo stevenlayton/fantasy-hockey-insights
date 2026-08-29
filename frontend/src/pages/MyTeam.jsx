@@ -4,9 +4,10 @@ import { useMyRoster } from '../hooks/useMyRoster';
 import { useLeagueSettings } from '../hooks/useLeagueSettings';
 import { useLeagueScoring } from '../hooks/useLeagueScoring';
 import { computeCategoryIntelligence } from '../lib/rosterCategories';
+import { computeReportCard } from '../lib/reportCard';
 import PlayerCard from '../components/PlayerCard';
 import AdSlot from '../components/AdSlot';
-import { UserCircle, Search, X, Settings, RotateCcw, Gauge, BarChart3 } from 'lucide-react';
+import { UserCircle, Search, X, Settings, RotateCcw, Gauge, BarChart3, Trophy, AlertTriangle } from 'lucide-react';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
 const POSITIONS = ['C', 'L', 'R', 'D', 'G'];
@@ -93,6 +94,19 @@ export default function MyTeam() {
   const categoryBreakdown = useMemo(
     () => computeCategoryIntelligence(pool, myPlayers, targets),
     [pool, myPlayers, targets]
+  );
+
+  const reportCard = useMemo(
+    () =>
+      computeReportCard({
+        pool,
+        myTeam,
+        draftedElsewhere,
+        positionCounts,
+        targets,
+        categoryBreakdown,
+      }),
+    [pool, myTeam, draftedElsewhere, positionCounts, targets, categoryBreakdown]
   );
 
   const suggestions = useMemo(() => {
@@ -287,9 +301,44 @@ How your roster's projected production compares to an average roster filled to y
 league's target slot counts, category by category. See lib/rosterCategories.js for the
 exact formula.
 </p>
+{(reportCard.bestPick || reportCard.biggestReach) && (
+<div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+{reportCard.bestPick && (
+<div className="rounded-lg border border-up/30 bg-up/5 p-3">
+<div className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-up">
+<Trophy size={14} /> Best Pick Right Now
+</div>
+<p className="text-sm font-semibold text-slate-200">
+{reportCard.bestPick.name} <span className="text-slate-500">({reportCard.bestPick.score} IQ)</span>
+</p>
+<p className="mt-1 text-xs text-slate-500">{reportCard.bestPick.why}</p>
+</div>
+)}
+{reportCard.biggestReach && (
+<div className="rounded-lg border border-down/30 bg-down/5 p-3">
+<div className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-down">
+<AlertTriangle size={14} /> Biggest Reach Right Now
+</div>
+<p className="text-sm font-semibold text-slate-200">
+{reportCard.biggestReach.name} <span className="text-slate-500">({reportCard.biggestReach.score} IQ)</span>
+</p>
+<p className="mt-1 text-xs text-slate-500">{reportCard.biggestReach.why}</p>
+</div>
+)}
+</div>
+)}
+<p className="mb-3 text-xs text-slate-600">
+Best Pick and Biggest Reach reflect each rostered player's Draft IQ score right now
+(see lib/draftIQ.js), not their value at the moment you actually drafted them, since
+real draft order is not tracked.
+</p>
 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 {categoryBreakdown.map((cat) => (
-<CategoryBar key={cat.key} category={cat} />
+<CategoryBar
+key={cat.key}
+category={cat}
+grade={reportCard.categoryGrades.find((g) => g.key === cat.key)?.grade}
+/>
 ))}
 </div>
 </section>
@@ -371,7 +420,7 @@ exact formula.
   );
 }
 
-function CategoryBar({ category }) {
+function CategoryBar({ category, grade }) {
 const barColor =
 category.status === 'strong' ? 'bg-up' : category.status === 'weak' ? 'bg-down' : 'bg-ice-500';
 const textColor =
@@ -382,7 +431,12 @@ return (
 <div className="rounded-lg border border-rink-border bg-rink-900 p-3">
 <div className="mb-1.5 flex items-center justify-between text-xs">
 <span className="font-semibold uppercase tracking-wide text-slate-400">{category.label}</span>
+<div className="flex items-center gap-1.5">
+{grade && (
+<span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${textColor} bg-rink-800`}>{grade}</span>
+)}
 <span className={`font-semibold ${textColor}`}>{pct != null ? `${pct}%` : 'N/A'}</span>
+</div>
 </div>
 <div className="h-2 w-full overflow-hidden rounded-full bg-rink-800">
 <div className={`h-full ${barColor}`} style={{ width: `${barWidth}%` }} />
