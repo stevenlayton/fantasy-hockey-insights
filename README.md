@@ -53,7 +53,11 @@ React frontend (onSnapshot listeners - no live API calls from the browser, ever)
   Goalies are ranked the same way but projected from wins, shutouts, and save percentage instead -
   see `PROJECTED_GOALIE_GAMES` and `GOALIE_FANTASY_WEIGHTS` in `functions/src/ingestDraftGuide.js`
   for the exact formula and tunable weights (wins and shutouts are worth flat points, save
-  percentage only counts once it clears a replacement-level baseline).
+  percentage only counts once it clears a replacement-level baseline). Below
+  `GOALIE_SAMPLE_SIZE_FOR_FULL_CREDIBILITY` games played (20 by default), a goalie's win rate,
+  shutout rate, and save percentage are blended toward `LEAGUE_AVERAGE_GOALIE_RATES` before being
+  extrapolated to a full season, so a backup goalie with only a game or two played can no longer
+  outrank established starters off a tiny hot sample (fixed Aug 2026).
 - `scheduledScoreboardIngestion` - every 15 minutes. Pulls today's (or the next scheduled day's)
   NHL scoreboard for the "Around the League" widget. See `functions/src/ingestScoreboard.js`.
 - `runIngestionNow` - an HTTPS endpoint to trigger any of the above on demand
