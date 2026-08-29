@@ -278,8 +278,10 @@ before recommending anything:
    League Rank" column next to Site Rank once a visitor customizes weights on My Team. See
    Recent fixes above.
 4. **Mock draft simulator** - not started. No bot opponents or difficulty modes.
-5. **Post-draft report card** - not started. My Team's A-F grade is a simple fill-ratio+trend
-   score, not the full best-pick/biggest-reach/category-grade report.
+5. **Post-draft report card** - partial (Aug 2026). My Team now shows a Best Pick and Biggest
+   Reach callout (from each rostered player's current Draft IQ score) plus a letter grade per
+   category on the Category Breakdown bars (see lib/reportCard.js); the overall A-F Team Grade
+   is still the simple fill-ratio+trend score, not a full weighted report.
 6. **Shareable draft card** - not started.
 7. **Player Battles / Who Should I Draft** - partial. Compare.jsx does ad hoc side-by-side stats
    for up to 4 players (now sourced from the full player pool); no SEO-indexable per-matchup
@@ -312,7 +314,9 @@ before recommending anything:
 - [x] **Phase 1**: league scoring customization, Draft IQ engine, Site Rank/ADP-proxy value
       board, and roster category intelligence all shipped Aug 2026 (see Recent fixes above);
       remaining live draft board upgrades still pending (goalie support shipped Aug 2026 too)
-- [ ] **Phase 2**: mock draft simulator (bots), draft grading, shareable draft cards
+- [ ] **Phase 2**: draft grading partially shipped Aug 2026 (Best Pick/Biggest Reach and
+      category letter grades, see lib/reportCard.js); mock draft simulator (bots) and
+      shareable draft cards still pending
 - [ ] **Phase 3**: SEO player-battle pages, sleeper/breakout/bust engine expansion, Will He Be
       There Next Round, tier alerts
 - [ ] **Phase 4**: retention (saved mocks/history/watchlist); SEO polish (sitemap.xml,
