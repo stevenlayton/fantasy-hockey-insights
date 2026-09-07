@@ -14,11 +14,17 @@ function timeAgo(ts) {
 export default function NewsFeed({ articles, loading }) {
   return (
     <div className="rounded-lg border border-rink-border bg-rink-900">
-      <div className="flex items-center gap-2 border-b border-rink-border px-4 py-3">
-        <Newspaper size={16} className="text-ice-500" />
-        <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-slate-300">
-          Latest News
-        </h3>
+      <div className="border-b border-rink-border px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Newspaper size={16} className="text-ice-500" />
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-slate-300">
+            Around the NHL
+          </h3>
+        </div>
+        <p className="mt-1 text-[11px] text-slate-600">
+          External headlines via RSS, not written by DraftCrease - each one links out to the
+          original publisher.
+        </p>
       </div>
       <div className="max-h-[560px] divide-y divide-rink-border overflow-y-auto scrollbar-thin">
         {loading && <p className="p-4 text-sm text-slate-500">Loading news…</p>}
