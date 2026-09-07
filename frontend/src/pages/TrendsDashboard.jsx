@@ -1,4 +1,5 @@
 import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { Link } from 'react-router-dom';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
 import PlayerCard from '../components/PlayerCard';
@@ -33,8 +34,15 @@ export default function TrendsDashboard() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Player Trends</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Who's heating up and who's cooling off, based on the last 5-15 games.
+          <p className="mt-1 max-w-2xl text-sm text-slate-500">
+            Who's heating up and who's cooling off, based on the last 5-15 games. Trend Score
+            blends recency-weighted recent performance against each player's own baseline and
+            standardizes it across the full player pool, so a hot streak means the same thing
+            regardless of position - see the{' '}
+            <Link to="/about" className="text-ice-400 hover:underline">
+              Methodology
+            </Link>{' '}
+            page for the full breakdown.
           </p>
         </div>
         <FreshnessBadge metaDocId="statsIngestion" />
