@@ -18,23 +18,42 @@ export default function Privacy() {
 
         <section>
           <h2 className="mb-2 font-display text-base font-semibold text-slate-200">
-            No accounts, no personal sign-up
+            No account required
           </h2>
           <p>
-            DraftCrease doesn't require - or offer - account creation or login. We don't collect
-            names, email addresses, or any other personal information from visitors.
+            Every feature of DraftCrease works without creating an account. If you don't sign in,
+            we don't collect your name, email address, or any other personal information from you
+            as a visitor.
           </p>
         </section>
 
         <section>
           <h2 className="mb-2 font-display text-base font-semibold text-slate-200">
-            Browser-local features (Draft Board, My Team, Compare)
+            Signed-out use: browser-local only (Draft Board, My Team, Compare)
           </h2>
           <p>
-            Tools like the Draft Board and My Team save your picks and roster using your browser's
-            local storage, on your device only. This data is never sent to us or to any server -
-            it stays on your device, and clearing your browser data or switching devices/browsers
-            clears it.
+            By default, tools like the Draft Board and My Team save your picks, roster, and
+            league scoring settings using your browser's local storage, on your device only. This
+            data is never sent to us or to any server - it stays on your device, and clearing your
+            browser data or switching devices/browsers clears it.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 font-display text-base font-semibold text-slate-200">
+            Optional Google sign-in: cross-device sync
+          </h2>
+          <p>
+            If you choose to click "Sign in" and sign in with Google, that's optional and never
+            required to use any part of the site. Signing in lets us additionally sync your
+            roster and league settings to our database (Firestore) under your account, so they
+            follow you to any other browser or device you sign into. In that case we store your
+            basic Google profile info (name, email, avatar) and link it to your saved roster.
+            Each signed-in user's data is locked to their own account - nobody else can read or
+            write it. The first time you sign in, whatever was already saved locally in that
+            browser is synced up once as a starting point. Signing out, or never signing in,
+            keeps everything local-only as described above. You can request deletion of your
+            synced data via the contact information below.
           </p>
         </section>
 
