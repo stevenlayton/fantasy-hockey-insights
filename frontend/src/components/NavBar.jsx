@@ -13,6 +13,7 @@ import {
   UserCircle,
   LogIn,
   LogOut,
+  Info,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
@@ -28,6 +29,7 @@ const MORE_LINKS = [
   { to: '/my-team', label: 'My Team', icon: UserCircle },
   { to: '/compare', label: 'Compare Players', icon: GitCompare },
   { to: '/sleepers', label: 'Sleepers & Breakouts', icon: Flame },
+  { to: '/about', label: 'About & Methodology', icon: Info },
 ];
 
 export default function NavBar() {
