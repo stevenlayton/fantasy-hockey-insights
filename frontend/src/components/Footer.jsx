@@ -12,6 +12,10 @@ export default function Footer() {
         <div className="mt-2 flex items-center gap-3 text-slate-600">
           <span>© {new Date().getFullYear()} DraftCrease</span>
           <span aria-hidden="true">·</span>
+          <Link to="/about" className="hover:text-slate-400 hover:underline">
+            About &amp; Methodology
+          </Link>
+          <span aria-hidden="true">·</span>
           <Link to="/privacy" className="hover:text-slate-400 hover:underline">
             Privacy Policy
           </Link>
