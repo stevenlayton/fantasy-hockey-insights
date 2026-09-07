@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { Link } from 'react-router-dom';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks/useFirestoreQuery';
 import PlayerCard from '../components/PlayerCard';
@@ -45,10 +46,14 @@ export default function PickupDrop() {
               Pickup / Drop
             </h1>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
-            Waiver-wire targets trending up, and rostered names cooling off. Rankings come from our
-            own trend-scoring model, based on recent performance, not real ownership percentages
-            from any fantasy platform.
+          <p className="mt-1 max-w-2xl text-sm text-slate-500">
+            Waiver-wire targets trending up, and rostered names cooling off. Rankings come from
+            our own trend-scoring model, based on recent performance, not real ownership
+            percentages from any fantasy platform. See how Trend Score is calculated on the{' '}
+            <Link to="/about" className="text-ice-400 hover:underline">
+              Methodology
+            </Link>{' '}
+            page.
           </p>
         </div>
         <FreshnessBadge metaDocId="statsIngestion" />
