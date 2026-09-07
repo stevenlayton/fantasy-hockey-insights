@@ -41,8 +41,14 @@ export default function DraftGuide() {
             <ClipboardList size={20} className="text-gold" />
             <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Draft Guide</h1>
           </div>
-          <p className="mt-1 text-sm text-slate-500 print:hidden">
+          <p className="mt-1 max-w-2xl text-sm text-slate-500 print:hidden">
             Pre-season positional rankings, projected from last season's per-game production.
+            Skaters are projected out to a full 82-game season; goalies are projected from wins,
+            shutouts, and save percentage. See the{' '}
+            <Link to="/about" className="text-ice-400 hover:underline">
+              Methodology
+            </Link>{' '}
+            page for the exact formula.
           </p>
           <p className="mt-1 hidden text-sm text-slate-700 print:block">
             {activeLabel} rankings, projected from last season's per-game production.
